@@ -39,6 +39,10 @@ data/
 # Docker Desktop config
 .docker/
 
+# Presentations
+*.pptx
+~$*.pptx
+
 # OS
 .DS_Store
 Thumbs.db
