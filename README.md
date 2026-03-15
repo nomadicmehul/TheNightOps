@@ -6,11 +6,11 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![Google ADK](https://img.shields.io/badge/Google-ADK-4285F4.svg)](https://google.github.io/adk-python/)
 [![MCP](https://img.shields.io/badge/MCP-Remote-green.svg)](https://modelcontextprotocol.io/)
-[![Gemini](https://img.shields.io/badge/Gemini-3.1--Pro-4285F4.svg)](https://ai.google.dev/)
+[![Gemini](https://img.shields.io/badge/Gemini-3.1--Pro--Preview-4285F4.svg)](https://ai.google.dev/)
 
 ---
 
-**TheNightOps** is an autonomous SRE agent built on [Google Agent Development Kit (ADK)](https://google.github.io/adk-python/) and powered by **Gemini 3.1 Pro**. It connects to your Kubernetes clusters and Google Cloud infrastructure through [MCP (Model Context Protocol)](https://modelcontextprotocol.io/) servers — including **official Google Cloud MCP** for GKE and Cloud Logging. When an incident fires, it doesn't just notify — it **investigates, correlates, diagnoses, drafts an RCA, and recommends remediation**, all before your on-call engineer finishes reading the alert.
+**TheNightOps** is an autonomous SRE agent built on [Google Agent Development Kit (ADK)](https://google.github.io/adk-python/) and powered by **Gemini 3.1 Pro Preview**. It connects to your Kubernetes clusters and Google Cloud infrastructure through [MCP (Model Context Protocol)](https://modelcontextprotocol.io/) servers — including **official Google Cloud MCP** for GKE and Cloud Logging. When an incident fires, it doesn't just notify — it **investigates, correlates, diagnoses, drafts an RCA, and recommends remediation**, all before your on-call engineer finishes reading the alert.
 
 ---
 
@@ -142,10 +142,116 @@ Multi-agent architecture using [MCP (Model Context Protocol)](https://modelconte
 | **Setup time** | 0 min (just kubectl) | 15-30 min (IAM, MCP enablement) |
 | **ADK patterns** | Single agent + function tools | Multi-agent orchestration + MCP |
 | **Dashboard** | Full support | Full support |
+| **Remediation** | Investigation + RCA only (read-only) | Investigation + auto-remediation |
+
+### Project Structure
+
+```
+src/
+  agents/
+    simple_agent.py          # Plan B: Single agent + kubectl tools (recommended)
+    root_orchestrator.py     # Plan A: Multi-agent orchestrator + MCP
+    log_analyst.py           # Plan A sub-agent: Cloud Logging analysis
+    deployment_correlator.py # Plan A sub-agent: K8s events, pod health
+    runbook_retriever.py     # Plan A sub-agent: Historical patterns
+    communication_drafter.py # Plan A sub-agent: RCA generation
+    anomaly_detector.py      # Plan A sub-agent: Proactive detection
+  core/
+    config.py                # Pydantic settings, YAML + .env loader
+    models.py                # WebhookAlert, IncidentRecord, etc.
+  ingestion/
+    webhook_receiver.py      # FastAPI on :8090 (Grafana/Alertmanager/PagerDuty)
+    deduplication.py          # Fingerprint-based alert dedup
+  intelligence/
+    incident_memory.py       # TF-IDF similarity matching for past incidents
+  remediation/
+    policy_engine.py         # 4-level graduated autonomy
+  dashboard/
+    app.py                   # FastAPI + WebSocket real-time dashboard (:8888)
+  cli.py                     # Typer CLI: nightops agent/dashboard/verify/...
+
+config/
+  nightops.yaml              # Agent + MCP server config
+  remediation_policies.yaml  # Remediation approval policies
+  .env                       # Secrets (gitignored)
+
+scripts/
+  setup-gke.sh               # GKE cluster + IAM setup
+  demo-gke.sh                # One-command GKE demo
+  test-scenarios.sh          # Run all 5 scenarios + verify
+  cleanup.sh                 # Tear down resources
+
+demo/
+  scenarios/demo_app.py      # FastAPI app with 5 failure modes
+  k8s_manifests/             # Demo K8s templates
+```
 
 ---
 
-## Quick Start
+## Quick Start (Step-by-Step)
+
+### Step 1: Clean Setup
+
+```bash
+# Clone and install
+git clone https://github.com/nomadicmehul/thenightops.git
+cd thenightops
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev]"
+
+# Configure
+cp config/.env.example config/.env
+# Edit config/.env — set GOOGLE_API_KEY and GCP_PROJECT_ID
+```
+
+### Step 2: Create GKE Cluster + Deploy Demo App
+
+```bash
+# Option A: Full setup (cluster + IAM + demo app)
+./scripts/demo-gke.sh
+
+# Option B: Cluster only (if you already have demo workloads)
+./scripts/setup-gke.sh
+```
+
+### Step 3: Verify Cluster
+
+```bash
+kubectl get pods -n nightops-demo
+kubectl get events -n nightops-demo
+```
+
+### Step 4: Start Dashboard + Agent (2 terminals)
+
+```bash
+# Terminal 1 — Dashboard
+source .venv/bin/activate && source config/.env
+nightops dashboard    # Opens http://localhost:8888
+
+# Terminal 2 — Agent (Simple Mode)
+source .venv/bin/activate && source config/.env
+nightops agent watch --simple
+```
+
+### Step 5: Run All Test Scenarios
+
+```bash
+bash scripts/test-scenarios.sh
+```
+
+### Step 6: Watch Results
+
+Open `http://localhost:8888` — investigations appear in real-time as each scenario triggers.
+
+### Step 7: Cleanup
+
+```bash
+./scripts/cleanup.sh
+```
+
+---
+
+## Quick Start (Minimal)
 
 ### Prerequisites
 
@@ -294,6 +400,24 @@ TheNightOps uses Google ADK's multi-agent orchestration to coordinate parallel i
 
 ### Investigation Flow
 
+**Simple Mode (Plan B):**
+```
+Incident Received (webhook / dashboard / CLI)
+      │
+      ▼
+Single Agent (ADK + Gemini) runs kubectl tools
+      │
+      ├── Phase 1: Triage (pods, events, namespaces)
+      ├── Phase 2: Deep Investigation (logs, describe, resource YAML)
+      ├── Phase 3: Synthesis (correlate findings)
+      └── Phase 4: RCA + Recommendations
+      │
+      ▼
+Output: Root Cause Analysis (read-only, no auto-remediation)
+Human takes recommended actions manually
+```
+
+**Full MCP Mode:**
 ```
 Incident Received (webhook / K8s event / proactive detection)
       │
@@ -309,7 +433,11 @@ Root Orchestrator synthesises findings
       └── Long-term recommendations
       │
       ▼
-Human approves any destructive actions
+Remediation Policy Engine checks action level:
+  Level 0 (Auto-approve): Silence alert, create incident, post Slack
+  Level 1 (Env-gated):    Auto in dev/staging, human approval in production
+  Level 2 (Always ask):   Rollback, scale down, revert config
+  Level 3 (Blocked):      Delete namespace, drain node — never allowed
 ```
 
 ---
@@ -372,10 +500,24 @@ Each scenario simulates a real-world incident pattern. Deploy to GKE, trigger th
 
 ## Configuration
 
+### Switching Gemini Models
+
+Change one line in `config/nightops.yaml`:
+
+```yaml
+model: gemini-3.1-pro-preview   # Latest (preview)
+model: gemini-2.5-pro           # Stable/GA
+model: gemini-2.5-flash         # Fast + cheap
+```
+
+Available models (verified via API): `gemini-3.1-pro-preview`, `gemini-3-pro-preview`, `gemini-3-flash-preview`, `gemini-2.5-pro`, `gemini-2.5-flash`, `gemini-2.0-flash`
+
+### Full Config
+
 ```yaml
 # config/nightops.yaml
 agent:
-  model: gemini-3.1-pro   # or gemini-2.5-flash for stable/fast
+  model: gemini-3.1-pro-preview   # or gemini-2.5-pro for stable
   max_investigation_time: 300
   require_human_approval:
     - pod_restart
@@ -421,6 +563,22 @@ mcp_servers:
 | Stakeholder notification | Manual, delayed, inconsistent | Automatic, immediate, formatted |
 | On-call cognitive load | High (raw alerts + 5 dashboards) | Low (pre-diagnosed summary) |
 | Post-incident toil | 90+ minutes per incident | < 10 minutes (review + approve) |
+
+---
+
+### Switching Modes
+
+No config changes needed — just a CLI flag:
+
+```bash
+# Simple Mode (Plan B) — kubectl, no MCP, read-only
+nightops agent watch --simple
+nightops agent run --simple --incident "..."
+
+# Full MCP Mode — multi-agent, GKE MCP + Cloud Logging MCP
+nightops agent watch
+nightops agent run --incident "..."
+```
 
 ---
 
@@ -488,7 +646,7 @@ docker compose up -d
 
 - [x] Custom Kubernetes MCP server (pod status, events, deployments, logs, resource usage)
 - [x] Custom Cloud Logging MCP server (log queries, error patterns, anomaly detection)
-- [x] Multi-agent investigation with Google ADK + Gemini 3.1 Pro
+- [x] Multi-agent investigation with Google ADK + Gemini 3.1 Pro Preview
 - [x] 5 demo scenarios with GKE simulation
 - [x] Proactive anomaly detection (CrashLoopBackOff, OOMKill, memory trends)
 - [x] TF-IDF incident memory for historical pattern matching
