@@ -4,7 +4,7 @@
 agent:
   # Supported models: gemini-3.1-pro (default), gemini-3-flash,
   #                   gemini-2.5-pro, gemini-2.5-flash, gemini-2.0-flash
-  model: gemini-2.5-pro
+  model: gemini-3.1-pro
   max_investigation_time: 300
   max_agent_turns: 20
   require_human_approval:

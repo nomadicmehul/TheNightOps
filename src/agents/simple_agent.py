@@ -277,6 +277,12 @@ Present your final analysis as:
 - Don't just report symptoms — trace back to the root cause
 - If you can't determine the root cause, say so clearly and list what you've ruled out
 - Be concise but thorough in your analysis
+
+## CRITICAL: You MUST always produce a final text response
+
+After completing your investigation, you MUST write out your full analysis in the output format above.
+Do NOT end your response with just a tool call — you MUST follow up with your written Root Cause Analysis.
+This is the most important part of your job: the written analysis.
 """
 
 
@@ -391,6 +397,7 @@ async def run_simple_investigation(
 
     results: list[str] = []
     all_agent_text: list[str] = []  # Capture ALL text from agent for fallback
+    all_tool_results: list[dict[str, str]] = []  # Tool name -> output for synthetic RCA
     tools_called = 0
     current_phase = 1
 
@@ -431,8 +438,12 @@ async def run_simple_investigation(
             if fn_responses:
                 for fr in fn_responses:
                     resp_str = str(fr.response)
-                    # Only report non-trivial findings
+                    # Save for synthetic RCA fallback
                     if len(resp_str) > 20:
+                        all_tool_results.append({
+                            "tool": fr.name,
+                            "output": resp_str[:500],
+                        })
                         await _push_event({
                             "type": "finding_added",
                             "source_agent": author,
@@ -494,7 +505,7 @@ async def run_simple_investigation(
 
     investigation_result = "\n".join(results)
 
-    # Fallback: if is_final_response() didn't capture text, use the longest
+    # Fallback 1: if is_final_response() didn't capture text, use the longest
     # agent text block (which is typically the final analysis/RCA)
     if not investigation_result.strip() and all_agent_text:
         # Find the longest text block — that's most likely the RCA summary
@@ -502,12 +513,33 @@ async def run_simple_investigation(
         if len(longest) > 100:
             investigation_result = longest
             logger.info(
-                "Used fallback: captured RCA from agent text (%d chars, %d total blocks)",
+                "Used fallback 1: captured RCA from agent text (%d chars, %d total blocks)",
                 len(longest), len(all_agent_text),
             )
         else:
             # Concatenate all text as last resort
             investigation_result = "\n\n".join(all_agent_text)
+
+    # Fallback 2: if still empty, synthesize a summary from tool results
+    if not investigation_result.strip() and all_tool_results:
+        logger.info(
+            "Used fallback 2: synthesizing RCA from %d tool results", len(all_tool_results),
+        )
+        lines = [
+            f"**Incident Summary**: {incident_description}",
+            f"**Investigation Mode**: Automated (Simple Mode — {tools_called} tools called)",
+            "",
+            "**Evidence Collected**:",
+        ]
+        for tr in all_tool_results:
+            lines.append(f"- `{tr['tool']}`: {tr['output'][:200]}")
+        lines.extend([
+            "",
+            "**Note**: The AI model completed tool calls but did not generate a written "
+            "analysis. The raw evidence above was collected during the investigation. "
+            "Review the tool outputs to determine the root cause.",
+        ])
+        investigation_result = "\n".join(lines)
 
     if not investigation_result.strip():
         investigation_result = (

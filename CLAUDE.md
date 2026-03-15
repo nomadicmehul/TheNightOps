@@ -112,7 +112,7 @@ Templates in `deploy/gke/` use placeholders (`AGENT_IMAGE`, `DEMO_IMAGE`). Runni
 
 ### Default Model
 The default Gemini model is `gemini-3.1-pro` (set in `src/core/config.py`).
-Supported: `gemini-3.1-pro`, `gemini-3-flash`, `gemini-2.5-pro`, `gemini-2.5-flash`, `gemini-2.0-flash`
+Supported: `gemini-3.1-pro` (default), `gemini-2.5-pro`, `gemini-2.5-flash`, `gemini-3-flash`, `gemini-2.0-flash`
 
 ### MCP Modes
 - **GCP mode** (default): Official Google Cloud MCP servers (`container.googleapis.com/mcp`, `logging.googleapis.com/mcp`). Requires IAM setup.
