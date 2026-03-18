@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TheNightOps — Autonomous SRE Agent for Kubernetes</title>
+  <meta name="description" content="AI-powered SRE agent that investigates Kubernetes incidents, generates root cause analyses, and recommends remediation — so your on-call engineer can sleep.">
+  <meta name="keywords" content="kubernetes, SRE, incident response, AI agent, Google ADK, MCP, DevOps, autonomous operations">
+  <meta name="author" content="Mehul Patel">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="TheNightOps — Autonomous SRE Agent for Kubernetes">
+  <meta property="og:description" content="AI-powered incident investigation that reduces MTTR from 45+ minutes to under 5 minutes.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://nomadicmehul.github.io/TheNightOps/">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="TheNightOps — Autonomous SRE Agent">
+  <meta name="twitter:description" content="AI-powered Kubernetes incident investigation. MTTR from 45 min to under 5 min.">
+
+  <!-- Favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌙</text></svg>">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+  <!-- Navigation -->
+  <nav class="navbar" id="navbar">
+    <div class="nav-container">
+      <a href="#" class="nav-logo">
+        <span class="logo-icon">🌙</span>
+        <span class="logo-text">TheNightOps</span>
+      </a>
+      <div class="nav-links" id="navLinks">
+        <a href="#features" class="nav-link">Features</a>
+        <a href="#architecture" class="nav-link">Architecture</a>
+        <a href="#how-it-works" class="nav-link">How It Works</a>
+        <a href="#demo" class="nav-link">Demo Scenarios</a>
+        <a href="#metrics" class="nav-link">Impact</a>
+        <a href="#timeline" class="nav-link">Timeline</a>
+        <a href="#quickstart" class="nav-link">Quick Start</a>
+        <a href="https://www.buymeacoffee.com/nomadicmehul" class="nav-link nav-coffee" target="_blank" rel="noopener">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M17 8h1a4 4 0 010 8h-1M3 8h14v9a4 4 0 01-4 4H7a4 4 0 01-4-4V8zM6 2v3M10 2v3M14 2v3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Buy Me a Coffee
+        </a>
+        <a href="https://github.com/nomadicmehul/TheNightOps" class="nav-link nav-cta" target="_blank" rel="noopener">
+          <svg class="github-icon" viewBox="0 0 16 16" width="16" height="16"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>
+          GitHub
+        </a>
+      </div>
+      <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="hero" id="hero">
+    <div class="hero-bg">
+      <div class="stars" id="stars"></div>
+      <div class="grid-overlay"></div>
+    </div>
+    <div class="container hero-content">
+      <div class="hero-badge">
+        <span class="badge-dot"></span>
+        v0.3.0 &mdash; Built with Google ADK
+        <span class="badge-beta">BETA</span>
+      </div>
+      <h1 class="hero-title">
+        Your On-Call Engineer<br>
+        <span class="gradient-text">Can Finally Sleep</span>
+      </h1>
+      <p class="hero-subtitle">
+        TheNightOps is an autonomous SRE agent that investigates Kubernetes incidents,
+        generates root cause analyses, and recommends remediation &mdash; reducing MTTR
+        from <strong>45+ minutes</strong> to <strong>under 5 minutes</strong>.
+      </p>
+      <div class="hero-actions">
+        <a href="#quickstart" class="btn btn-primary">
+          Get Started
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+        <a href="https://github.com/nomadicmehul/TheNightOps" class="btn btn-secondary" target="_blank" rel="noopener">
+          View on GitHub
+        </a>
+      </div>
+      <div class="hero-terminal">
+        <div class="terminal-header">
+          <span class="terminal-dot red"></span>
+          <span class="terminal-dot yellow"></span>
+          <span class="terminal-dot green"></span>
+          <span class="terminal-title">nightops</span>
+        </div>
+        <div class="terminal-body" id="terminalBody">
+          <div class="terminal-line">
+            <span class="prompt">$</span> nightops agent run --simple --incident "Pod OOMKilled in production"
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="hero-scroll">
+      <a href="#features" aria-label="Scroll down">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12l7 7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+    </div>
+  </section>
+
+  <!-- Stats Bar -->
+  <section class="stats-bar">
+    <div class="container">
+      <div class="stats-grid">
+        <div class="stat-item" data-count="5">
+          <span class="stat-number">< 5</span>
+          <span class="stat-label">Min MTTR</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-number">6</span>
+          <span class="stat-label">AI Agents</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-number">4</span>
+          <span class="stat-label">MCP Servers</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-number">5</span>
+          <span class="stat-label">Demo Scenarios</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-number">4</span>
+          <span class="stat-label">Webhook Sources</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section class="section" id="features">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Capabilities</span>
+        <h2 class="section-title">Everything Your SRE Team Needs</h2>
+        <p class="section-subtitle">Multi-agent AI orchestration that correlates logs, events, deployments, and metrics across your entire Kubernetes infrastructure.</p>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card" data-aos>
+          <div class="feature-icon">🔍</div>
+          <h3>Multi-Agent Investigation</h3>
+          <p>6 specialized agents work in parallel &mdash; Log Analyst, Deployment Correlator, Runbook Retriever, Communication Drafter, Anomaly Detector, and Root Orchestrator.</p>
+        </div>
+        <div class="feature-card" data-aos>
+          <div class="feature-icon">📊</div>
+          <h3>Real-Time Dashboard</h3>
+          <p>WebSocket-powered live investigation UI with phase progress tracking, severity-colored findings, and auto-generated RCA summaries.</p>
+        </div>
+        <div class="feature-card" data-aos>
+          <div class="feature-icon">🧠</div>
+          <h3>Incident Memory</h3>
+          <p>TF-IDF similarity matching learns from past incidents. Flags recurring patterns and accelerates diagnosis with historical context.</p>
+        </div>
+        <div class="feature-card" data-aos>
+          <div class="feature-icon">🛡️</div>
+          <h3>Graduated Remediation</h3>
+          <p>4-level policy engine: auto-approve safe actions, require approval for risky ones, and block dangerous operations entirely.</p>
+        </div>
+        <div class="feature-card" data-aos>
+          <div class="feature-icon">🔌</div>
+          <h3>MCP Integration</h3>
+          <p>Official Google Cloud MCP servers (GKE, Cloud Observability) plus custom servers for Kubernetes, Cloud Logging, Slack, and more.</p>
+        </div>
+        <div class="feature-card" data-aos>
+          <div class="feature-icon">📡</div>
+          <h3>Multi-Source Ingestion</h3>
+          <p>Accept alerts from Grafana, Alertmanager, PagerDuty, or custom webhooks. K8s event watcher and proactive anomaly scheduler included.</p>
+        </div>
+        <div class="feature-card" data-aos>
+          <div class="feature-icon">🤖</div>
+          <h3>Dual-Mode Architecture</h3>
+          <p>Plan A: Full multi-agent MCP mode for production. Plan B: Simple kubectl-based mode for quick demos and testing &mdash; zero MCP setup needed.</p>
+        </div>
+        <div class="feature-card" data-aos>
+          <div class="feature-icon">📈</div>
+          <h3>Metrics & Impact Tracking</h3>
+          <p>Track MTTR, RCA consistency, auto-resolution rate, engineer hours saved, and recurring incident patterns across all investigations.</p>
+        </div>
+        <div class="feature-card" data-aos>
+          <div class="feature-icon">📢</div>
+          <h3>Multi-Channel Notifications</h3>
+          <p>Send RCA reports and incident updates via Slack, Email (SMTP), Telegram, or WhatsApp Business API automatically.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Architecture Section -->
+  <section class="section section-dark" id="architecture">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Architecture</span>
+        <h2 class="section-title">Built for Production SRE</h2>
+        <p class="section-subtitle">Multi-agent orchestration powered by Google ADK, connected to your infrastructure via MCP.</p>
+      </div>
+      <div class="arch-tabs">
+        <button class="arch-tab active" data-tab="plana">Plan A: Multi-Agent MCP</button>
+        <button class="arch-tab" data-tab="planb">Plan B: Simple Mode</button>
+      </div>
+      <div class="arch-content">
+        <div class="arch-panel active" id="plana">
+          <div class="arch-diagram">
+<pre class="arch-ascii">
+┌──────────────────────────────────────────────────────────────┐
+│     Webhook Receiver  /  CLI  /  Event Watcher  /  Scheduler │
+└─────────────────────────────┬────────────────────────────────┘
+                              │
+                ┌─────────────▼──────────────┐
+                │    Root Orchestrator       │
+                │    (ADK + Gemini 3.1 Pro)  │
+                └─────────────┬──────────────┘
+                              │ delegates
+       ┌──────────┬───────────┼───────────┬──────────┐
+       ▼          ▼           ▼           ▼          ▼
+  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐
+  │   Log   │ │  Deploy  │ │ Runbook │ │  Comms  │ │ Anomaly │
+  │ Analyst │ │Correlator│ │Retriever│ │ Drafter │ │Detector │
+  └────┬────┘ └────┬────┘ └────┬────┘ └────┬────┘ └────┬────┘
+       │           │           │            │           │
+       └─────┬─────┘           │            │           │
+             ▼                 ▼            ▼           ▼
+  ┌───────────────────┐ ┌──────────┐ ┌──────────┐ ┌─────────┐
+  │  GKE MCP Server   │ │ Cloud    │ │ Incident │ │ Policy  │
+  │  (Official GCP)   │ │Obs. MCP  │ │  Memory  │ │ Engine  │
+  └───────────────────┘ └──────────┘ └──────────┘ └─────────┘
+</pre>
+          </div>
+          <div class="arch-features">
+            <div class="arch-feature">
+              <strong>Official Google Cloud MCP</strong> &mdash; IAM-authenticated access to GKE clusters and Cloud Observability
+            </div>
+            <div class="arch-feature">
+              <strong>Parallel Investigation</strong> &mdash; Sub-agents work simultaneously for faster diagnosis
+            </div>
+            <div class="arch-feature">
+              <strong>Full Reasoning Chain</strong> &mdash; Each agent contributes specialized analysis to the root cause
+            </div>
+          </div>
+        </div>
+        <div class="arch-panel" id="planb">
+          <div class="arch-diagram">
+<pre class="arch-ascii">
+┌──────────────────────────────────────────────────────┐
+│     Webhook Receiver  /  CLI  /  Event Watcher       │
+└────────────────────────┬─────────────────────────────┘
+                         │
+              ┌──────────▼──────────┐
+              │    Simple Agent     │
+              │  (ADK + Gemini)     │
+              └──────────┬──────────┘
+                         │
+          ┌──────────────┼──────────────┐
+          ▼              ▼              ▼
+   ┌────────────┐ ┌────────────┐ ┌────────────┐
+   │ kubectl    │ │ kubectl    │ │ kubectl    │
+   │ get pods   │ │ logs       │ │ top        │
+   │ get events │ │ describe   │ │ rollout    │
+   └────────────┘ └────────────┘ └────────────┘
+                         │
+              (Any kubectl-configured cluster)
+</pre>
+          </div>
+          <div class="arch-features">
+            <div class="arch-feature">
+              <strong>Zero MCP Setup</strong> &mdash; Works with any cluster where kubectl is configured
+            </div>
+            <div class="arch-feature">
+              <strong>Single Agent</strong> &mdash; Direct kubectl subprocess calls for maximum reliability
+            </div>
+            <div class="arch-feature">
+              <strong>Perfect for Demos</strong> &mdash; Get started in minutes, no GCP project required
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How It Works -->
+  <section class="section" id="how-it-works">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Investigation Flow</span>
+        <h2 class="section-title">4-Phase Autonomous Investigation</h2>
+        <p class="section-subtitle">From alert to RCA in under 5 minutes, fully automated.</p>
+      </div>
+      <div class="phases-timeline">
+        <div class="phase-item" data-aos>
+          <div class="phase-number">01</div>
+          <div class="phase-content">
+            <h3>Triage</h3>
+            <p>Incident received via webhook or CLI. Agent checks pod status, events, and namespace scope to understand the blast radius.</p>
+          </div>
+        </div>
+        <div class="phase-item" data-aos>
+          <div class="phase-number">02</div>
+          <div class="phase-content">
+            <h3>Deep Investigation</h3>
+            <p>Sub-agents query logs, resource usage, deployment history, and YAML configs in parallel. Cloud Logging patterns are correlated with K8s events.</p>
+          </div>
+        </div>
+        <div class="phase-item" data-aos>
+          <div class="phase-number">03</div>
+          <div class="phase-content">
+            <h3>Synthesis</h3>
+            <p>Findings from all agents are aggregated. Gemini correlates evidence across systems to identify the root cause with a confidence score.</p>
+          </div>
+        </div>
+        <div class="phase-item" data-aos>
+          <div class="phase-number">04</div>
+          <div class="phase-content">
+            <h3>RCA + Remediation</h3>
+            <p>Structured RCA is generated. Remediation actions are evaluated against the policy engine. Safe actions auto-execute; risky ones await approval.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Demo Scenarios -->
+  <section class="section section-dark" id="demo">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Demo Scenarios</span>
+        <h2 class="section-title">5 Failure Modes, Fully Automated Recovery</h2>
+        <p class="section-subtitle">Each scenario demonstrates a real-world incident pattern that TheNightOps can detect, diagnose, and resolve.</p>
+      </div>
+      <div class="scenarios-grid">
+        <div class="scenario-card" data-aos>
+          <div class="scenario-icon">💾</div>
+          <div class="scenario-tag">memory-leak</div>
+          <h3>Memory Leak &rarr; OOMKill</h3>
+          <p>Pod gradually consumes memory, gets OOMKilled, enters CrashLoopBackOff. Agent traces the leak, correlates with deployment version, recommends rollback.</p>
+        </div>
+        <div class="scenario-card" data-aos>
+          <div class="scenario-icon">🔥</div>
+          <div class="scenario-tag">cpu-spike</div>
+          <h3>CPU Spike from Bad Query</h3>
+          <p>Unoptimized endpoint causes CPU throttling and cascading latency. Agent identifies the hot endpoint, finds the code path, correlates with recent deploy.</p>
+        </div>
+        <div class="scenario-card" data-aos>
+          <div class="scenario-icon">🌊</div>
+          <div class="scenario-tag">cascading-failure</div>
+          <h3>Cascading DB Failure</h3>
+          <p>Database connection pool exhaustion triggers 504s across dependent services. Agent maps the cascade, identifies the root DB timeout, traces to config change.</p>
+        </div>
+        <div class="scenario-card" data-aos>
+          <div class="scenario-icon">⚙️</div>
+          <div class="scenario-tag">config-drift</div>
+          <h3>Config Drift &rarr; 5xx Errors</h3>
+          <p>Misconfigured environment variable causes 50% failure rate. Agent detects the error spike, correlates with recent env var change, recommends revert.</p>
+        </div>
+        <div class="scenario-card" data-aos>
+          <div class="scenario-icon">💥</div>
+          <div class="scenario-tag">oom-kill</div>
+          <h3>Aggressive OOMKill</h3>
+          <p>Instant memory allocation exhausts limits within seconds. Agent detects OOMKill events, compares limits vs usage, identifies the allocation bug.</p>
+        </div>
+      </div>
+      <div class="scenario-command">
+        <div class="terminal-header">
+          <span class="terminal-dot red"></span>
+          <span class="terminal-dot yellow"></span>
+          <span class="terminal-dot green"></span>
+          <span class="terminal-title">trigger a scenario</span>
+        </div>
+        <div class="terminal-body">
+          <div class="terminal-line"><span class="prompt">$</span> nightops demo trigger -s memory-leak</div>
+          <div class="terminal-line"><span class="prompt">$</span> nightops demo trigger -s cpu-spike</div>
+          <div class="terminal-line"><span class="prompt">$</span> nightops demo trigger -s cascading-failure</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Remediation Policies -->
+  <section class="section" id="remediation">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Safety</span>
+        <h2 class="section-title">Graduated Remediation Policies</h2>
+        <p class="section-subtitle">Four levels of autonomy ensure safe operations across all environments.</p>
+      </div>
+      <div class="policy-grid">
+        <div class="policy-card policy-level-0" data-aos>
+          <div class="policy-level">Level 0</div>
+          <h3>Auto-Approve</h3>
+          <p>Safe, read-only or notification actions that can't cause harm.</p>
+          <ul>
+            <li>Silence alerts</li>
+            <li>Create Grafana incidents</li>
+            <li>Post Slack updates</li>
+          </ul>
+        </div>
+        <div class="policy-card policy-level-1" data-aos>
+          <div class="policy-level">Level 1</div>
+          <h3>Environment-Gated</h3>
+          <p>Auto in dev/staging, require approval in production.</p>
+          <ul>
+            <li>Pod restarts</li>
+            <li>Scale-up replicas</li>
+          </ul>
+        </div>
+        <div class="policy-card policy-level-2" data-aos>
+          <div class="policy-level">Level 2</div>
+          <h3>Always Approve</h3>
+          <p>Potentially impactful actions that always need human sign-off.</p>
+          <ul>
+            <li>Rollbacks</li>
+            <li>Config reverts</li>
+            <li>Scale-down</li>
+          </ul>
+        </div>
+        <div class="policy-card policy-level-3" data-aos>
+          <div class="policy-level">Level 3</div>
+          <h3>Blocked</h3>
+          <p>Dangerous operations that are never allowed.</p>
+          <ul>
+            <li>Delete namespace</li>
+            <li>Delete PVC</li>
+            <li>Drain node</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Metrics / Impact Section -->
+  <section class="section section-dark" id="metrics">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Impact</span>
+        <h2 class="section-title">Before vs After TheNightOps</h2>
+        <p class="section-subtitle">Measured improvements across real incident investigation workflows.</p>
+      </div>
+      <div class="metrics-grid">
+        <div class="metric-card" data-aos>
+          <div class="metric-header">
+            <span class="metric-label">MTTR (investigation)</span>
+          </div>
+          <div class="metric-comparison">
+            <div class="metric-before">
+              <span class="metric-value">45+</span>
+              <span class="metric-unit">min</span>
+            </div>
+            <div class="metric-arrow">&rarr;</div>
+            <div class="metric-after">
+              <span class="metric-value">&lt; 5</span>
+              <span class="metric-unit">min</span>
+            </div>
+          </div>
+        </div>
+        <div class="metric-card" data-aos>
+          <div class="metric-header">
+            <span class="metric-label">Context Assembly</span>
+          </div>
+          <div class="metric-comparison">
+            <div class="metric-before">
+              <span class="metric-value">20+</span>
+              <span class="metric-unit">min</span>
+            </div>
+            <div class="metric-arrow">&rarr;</div>
+            <div class="metric-after">
+              <span class="metric-value">Seconds</span>
+              <span class="metric-unit">(parallel)</span>
+            </div>
+          </div>
+        </div>
+        <div class="metric-card" data-aos>
+          <div class="metric-header">
+            <span class="metric-label">RCA Consistency</span>
+          </div>
+          <div class="metric-comparison">
+            <div class="metric-before">
+              <span class="metric-value">Varies</span>
+              <span class="metric-unit">by engineer</span>
+            </div>
+            <div class="metric-arrow">&rarr;</div>
+            <div class="metric-after">
+              <span class="metric-value">100%</span>
+              <span class="metric-unit">standardized</span>
+            </div>
+          </div>
+        </div>
+        <div class="metric-card" data-aos>
+          <div class="metric-header">
+            <span class="metric-label">Post-Incident Toil</span>
+          </div>
+          <div class="metric-comparison">
+            <div class="metric-before">
+              <span class="metric-value">90+</span>
+              <span class="metric-unit">min</span>
+            </div>
+            <div class="metric-arrow">&rarr;</div>
+            <div class="metric-after">
+              <span class="metric-value">&lt; 10</span>
+              <span class="metric-unit">min</span>
+            </div>
+          </div>
+        </div>
+        <div class="metric-card" data-aos>
+          <div class="metric-header">
+            <span class="metric-label">On-Call Cognitive Load</span>
+          </div>
+          <div class="metric-comparison">
+            <div class="metric-before">
+              <span class="metric-value">High</span>
+              <span class="metric-unit">5 dashboards</span>
+            </div>
+            <div class="metric-arrow">&rarr;</div>
+            <div class="metric-after">
+              <span class="metric-value">Low</span>
+              <span class="metric-unit">pre-diagnosed</span>
+            </div>
+          </div>
+        </div>
+        <div class="metric-card" data-aos>
+          <div class="metric-header">
+            <span class="metric-label">Recurring Incidents</span>
+          </div>
+          <div class="metric-comparison">
+            <div class="metric-before">
+              <span class="metric-value">60%</span>
+              <span class="metric-unit">repeated</span>
+            </div>
+            <div class="metric-arrow">&rarr;</div>
+            <div class="metric-after">
+              <span class="metric-value">Flagged</span>
+              <span class="metric-unit">& learning</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Sponsor Section -->
+  <section class="section section-sponsor" id="sponsor">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Support</span>
+        <h2 class="section-title">Sponsor TheNightOps</h2>
+        <p class="section-subtitle">Help keep this project alive and growing. Your support fuels late-night debugging sessions and new features.</p>
+      </div>
+      <div class="sponsor-grid">
+        <div class="sponsor-card sponsor-featured" data-aos>
+          <div class="sponsor-icon">☕</div>
+          <h3>Buy Me a Coffee</h3>
+          <p>A one-time contribution to keep the caffeine flowing and the agents running.</p>
+          <a href="https://www.buymeacoffee.com/nomadicmehul" class="btn btn-coffee" target="_blank" rel="noopener">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M17 8h1a4 4 0 010 8h-1M3 8h14v9a4 4 0 01-4 4H7a4 4 0 01-4-4V8zM6 2v3M10 2v3M14 2v3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Buy Me a Coffee
+          </a>
+        </div>
+        <div class="sponsor-card" data-aos>
+          <div class="sponsor-icon">💜</div>
+          <h3>GitHub Sponsors</h3>
+          <p>Become a recurring sponsor and get your name in the project README and release notes.</p>
+          <a href="https://github.com/sponsors/nomadicmehul" class="btn btn-secondary" target="_blank" rel="noopener">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1.314C12.438-3.248 23.534 4.735 8 15-7.534 4.736 3.562-3.248 8 1.314z" fill="currentColor"/></svg>
+            Sponsor on GitHub
+          </a>
+        </div>
+        <div class="sponsor-card" data-aos>
+          <div class="sponsor-icon">⭐</div>
+          <h3>Star the Repo</h3>
+          <p>Not ready to sponsor? A GitHub star helps with visibility and means a lot to the project.</p>
+          <a href="https://github.com/nomadicmehul/TheNightOps" class="btn btn-secondary" target="_blank" rel="noopener">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 .25a.75.75 0 01.673.418l1.882 3.815 4.21.612a.75.75 0 01.416 1.279l-3.046 2.97.719 4.192a.75.75 0 01-1.088.791L8 12.347l-3.766 1.98a.75.75 0 01-1.088-.79l.72-4.194L.818 6.374a.75.75 0 01.416-1.28l4.21-.611L7.327.668A.75.75 0 018 .25z" fill="currentColor"/></svg>
+            Star on GitHub
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Tech Stack -->
+  <section class="section" id="tech-stack">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Tech Stack</span>
+        <h2 class="section-title">Built With</h2>
+      </div>
+      <div class="tech-grid">
+        <div class="tech-item" data-aos>
+          <div class="tech-name">Google ADK</div>
+          <div class="tech-desc">Agent orchestration framework</div>
+        </div>
+        <div class="tech-item" data-aos>
+          <div class="tech-name">Gemini 3.1 Pro</div>
+          <div class="tech-desc">LLM reasoning engine</div>
+        </div>
+        <div class="tech-item" data-aos>
+          <div class="tech-name">MCP</div>
+          <div class="tech-desc">Model Context Protocol</div>
+        </div>
+        <div class="tech-item" data-aos>
+          <div class="tech-name">FastAPI</div>
+          <div class="tech-desc">Webhooks &amp; dashboard</div>
+        </div>
+        <div class="tech-item" data-aos>
+          <div class="tech-name">Python 3.11+</div>
+          <div class="tech-desc">Core language</div>
+        </div>
+        <div class="tech-item" data-aos>
+          <div class="tech-name">Kubernetes</div>
+          <div class="tech-desc">Target platform</div>
+        </div>
+        <div class="tech-item" data-aos>
+          <div class="tech-name">GKE</div>
+          <div class="tech-desc">Google Kubernetes Engine</div>
+        </div>
+        <div class="tech-item" data-aos>
+          <div class="tech-name">Pydantic</div>
+          <div class="tech-desc">Config &amp; validation</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Timeline -->
+  <section class="section section-dark" id="timeline">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Project Timeline</span>
+        <h2 class="section-title">Development Milestones</h2>
+      </div>
+      <div class="timeline">
+        <div class="timeline-item" data-aos>
+          <div class="timeline-marker"></div>
+          <div class="timeline-content">
+            <span class="timeline-date">v0.2.0 &mdash; Initial Release</span>
+            <h3>Foundation</h3>
+            <p>Multi-agent architecture with custom MCP servers. Webhook receiver, policy engine, and CLI. 5 demo failure scenarios.</p>
+          </div>
+        </div>
+        <div class="timeline-item" data-aos>
+          <div class="timeline-marker"></div>
+          <div class="timeline-content">
+            <span class="timeline-date">v0.3.0 &mdash; Major Upgrade</span>
+            <h3>Dual-Mode Architecture</h3>
+            <p>Gemini 3.1 Pro upgrade. Official Google Cloud MCP support. Plan B Simple Mode for zero-setup demos. Real-time WebSocket dashboard.</p>
+          </div>
+        </div>
+        <div class="timeline-item" data-aos>
+          <div class="timeline-marker"></div>
+          <div class="timeline-content">
+            <span class="timeline-date">Latest</span>
+            <h3>Intelligence & Polish</h3>
+            <p>Incident Memory with TF-IDF similarity. ADK Web wrapper. Architecture deep-dive documentation. Commons Clause licensing.</p>
+          </div>
+        </div>
+        <div class="timeline-item timeline-future" data-aos>
+          <div class="timeline-marker"></div>
+          <div class="timeline-content">
+            <span class="timeline-date">Roadmap</span>
+            <h3>What's Next</h3>
+            <ul>
+              <li>Multi-cluster support</li>
+              <li>Grafana MCP integration</li>
+              <li>Vector DB for incident memory</li>
+              <li>Auto-remediation execution</li>
+              <li>Cost impact analysis</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Quick Start -->
+  <section class="section" id="quickstart">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Get Started</span>
+        <h2 class="section-title">Up and Running in Minutes</h2>
+      </div>
+      <div class="quickstart-steps">
+        <div class="qs-step" data-aos>
+          <div class="qs-number">1</div>
+          <div class="qs-content">
+            <h3>Clone & Install</h3>
+            <div class="code-block">
+              <pre><code>git clone https://github.com/nomadicmehul/TheNightOps.git
+cd TheNightOps
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev]"</code></pre>
+            </div>
+          </div>
+        </div>
+        <div class="qs-step" data-aos>
+          <div class="qs-number">2</div>
+          <div class="qs-content">
+            <h3>Configure</h3>
+            <div class="code-block">
+              <pre><code>cp config/.env.example config/.env
+# Edit config/.env with your GOOGLE_API_KEY
+nightops verify</code></pre>
+            </div>
+          </div>
+        </div>
+        <div class="qs-step" data-aos>
+          <div class="qs-number">3</div>
+          <div class="qs-content">
+            <h3>Run Your First Investigation</h3>
+            <div class="code-block">
+              <pre><code># Simple Mode (no MCP setup needed)
+nightops agent run --simple \
+  --incident "Pod OOMKilled in production"
+
+# Or launch the dashboard
+nightops dashboard</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="section section-cta">
+    <div class="container">
+      <h2>Ready to Let Your On-Call Sleep?</h2>
+      <p>TheNightOps is open-source and ready for your Kubernetes clusters.</p>
+      <div class="cta-actions">
+        <a href="https://github.com/nomadicmehul/TheNightOps" class="btn btn-primary btn-lg" target="_blank" rel="noopener">
+          <svg class="github-icon" viewBox="0 0 16 16" width="20" height="20"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>
+          Star on GitHub
+        </a>
+        <a href="https://github.com/nomadicmehul/TheNightOps/issues" class="btn btn-secondary btn-lg" target="_blank" rel="noopener">
+          Report an Issue
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div class="footer-logo">
+            <span class="logo-icon">🌙</span>
+            <span class="logo-text">TheNightOps</span>
+          </div>
+          <p>Autonomous SRE Agent for Kubernetes.<br>Built with Google ADK.</p>
+        </div>
+        <div class="footer-links">
+          <h4>Project</h4>
+          <a href="#features">Features</a>
+          <a href="#architecture">Architecture</a>
+          <a href="#demo">Demo Scenarios</a>
+          <a href="#quickstart">Quick Start</a>
+        </div>
+        <div class="footer-links">
+          <h4>Resources</h4>
+          <a href="https://github.com/nomadicmehul/TheNightOps" target="_blank" rel="noopener">GitHub</a>
+          <a href="https://github.com/nomadicmehul/TheNightOps/issues" target="_blank" rel="noopener">Issues</a>
+          <a href="https://github.com/nomadicmehul/TheNightOps/blob/main/LICENSE" target="_blank" rel="noopener">License</a>
+        </div>
+        <div class="footer-links">
+          <h4>Author</h4>
+          <a href="https://nomadicmehul.dev/" target="_blank" rel="noopener">Mehul Patel</a>
+          <a href="https://github.com/nomadicmehul" target="_blank" rel="noopener">GitHub</a>
+
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>Apache 2.0 with Commons Clause &mdash; &copy; 2025-2026 Mehul Patel</p>
+        <p class="footer-tagline">For the love of DevOps, Cloud Native, and the Open Source community.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="assets/script.js"></script>
+</body>
+</html>
