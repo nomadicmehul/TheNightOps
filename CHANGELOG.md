@@ -7,30 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.3.0b1] - 2026-03-18
+## [0.1.0b1] - 2026-03-18
+
+First public beta release.
 
 ### Added
-- GitHub Actions CI workflow (lint + test matrix on Python 3.11/3.12/3.13)
-- GitHub Actions release workflow (PyPI trusted publisher + GitHub Releases)
-- Dynamic version management via `src/__init__.py`
-- CHANGELOG.md
-- Beta version tagging (PEP 440)
-
-## [0.3.0] - 2025-05-15
-
-### Added
+- Multi-agent SRE system with Root Orchestrator and 5 sub-agents
+- Google ADK + Gemini integration (gemini-3.1-pro-preview default)
+- Official GCP MCP servers (GKE, Cloud Observability) + local mode
+- Webhook ingestion pipeline (Grafana, Alertmanager, PagerDuty, generic)
+- Fingerprint-based alert deduplication
 - Incident Memory with TF-IDF similarity matching
-- Commons Clause license for source-available protection
+- Policy-based remediation engine (4 approval levels)
+- Real-time investigation dashboard (FastAPI + WebSocket)
+- Proactive anomaly detection scheduler
+- MTTR and impact metrics tracking
+- 5 demo failure scenarios (memory-leak, cpu-spike, cascading-failure, config-drift, oom-kill)
+- Typer CLI with commands: agent, verify, metrics, policies, auto-config, demo, dashboard
+- GitHub Actions CI workflow (lint + test on Python 3.11/3.12/3.13)
+- GitHub Actions release workflow (PyPI trusted publisher + GitHub Releases)
 - Static website for GitHub Pages
-- BETA badge and sponsor section
-
-## [0.2.0] - 2025-04-01
-
-### Added
-- Initial multi-agent SRE system
-- Root orchestrator with 5 sub-agents
-- MCP server integrations (GKE, Cloud Logging)
-- Webhook ingestion pipeline
-- Policy-based remediation engine
-- Real-time investigation dashboard
-- 5 demo failure scenarios
