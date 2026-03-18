@@ -30,7 +30,7 @@ from starlette.routing import Mount, Route
 
 logger = logging.getLogger(__name__)
 
-server = Server("thenightops-notifications")
+server = Server("nightops-notifications")
 
 
 # ── Server-side credential helpers ──────────────────────────────────

@@ -76,8 +76,8 @@ PROJECT_ID="${GCP_PROJECT_ID:?Set GCP_PROJECT_ID in config/.env}"
 REGION="${GCP_REGION:-us-central1}"
 ZONE="${GKE_CLUSTER_LOCATION:-${GCP_ZONE:-us-central1-a}}"
 CLUSTER_NAME="${GKE_CLUSTER_NAME:-nightops-demo}"
-AGENT_IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/thenightops/nightops-agent:latest"
-DEMO_IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/thenightops/nightops-demo-api:latest"
+AGENT_IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/nightops/nightops-agent:latest"
+DEMO_IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/nightops/nightops-demo-api:latest"
 
 # ── Colors ────────────────────────────────────────────────────────
 RED='\033[0;31m'

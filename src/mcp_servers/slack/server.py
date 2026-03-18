@@ -21,7 +21,7 @@ from starlette.routing import Mount, Route
 
 logger = logging.getLogger(__name__)
 
-server = Server("thenightops-slack")
+server = Server("nightops-slack")
 
 SLACK_API_BASE = "https://slack.com/api"
 

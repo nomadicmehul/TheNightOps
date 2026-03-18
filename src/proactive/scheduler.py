@@ -13,9 +13,9 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Optional
 
-from thenightops.core.config import NightOpsConfig, ProactiveConfig
-from thenightops.core.models import AnomalyCheck, Incident, Severity
-from thenightops.ingestion.deduplication import AlertDeduplicator
+from nightops.core.config import NightOpsConfig, ProactiveConfig
+from nightops.core.models import AnomalyCheck, Incident, Severity
+from nightops.ingestion.deduplication import AlertDeduplicator
 
 logger = logging.getLogger(__name__)
 
@@ -106,7 +106,7 @@ class ProactiveScheduler:
 
     async def _handle_anomaly(self, check: AnomalyCheck) -> None:
         """Handle a detected anomaly by creating an incident."""
-        from thenightops.core.models import WebhookAlert
+        from nightops.core.models import WebhookAlert
         import hashlib
 
         fingerprint = hashlib.sha256(

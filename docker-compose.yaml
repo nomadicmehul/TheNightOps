@@ -15,7 +15,7 @@ services:
   mcp-kubernetes:
     build: .
     entrypoint: ["python", "-m"]
-    command: ["thenightops.mcp_servers.kubernetes.server"]
+    command: ["nightops.mcp_servers.kubernetes.server"]
     ports:
       - "8002:8002"
     env_file: config/.env
@@ -30,7 +30,7 @@ services:
   mcp-cloud-logging:
     build: .
     entrypoint: ["python", "-m"]
-    command: ["thenightops.mcp_servers.cloud_logging.server"]
+    command: ["nightops.mcp_servers.cloud_logging.server"]
     ports:
       - "8001:8001"
     env_file: config/.env
@@ -43,7 +43,7 @@ services:
   mcp-slack:
     build: .
     entrypoint: ["python", "-m"]
-    command: ["thenightops.mcp_servers.slack.server"]
+    command: ["nightops.mcp_servers.slack.server"]
     ports:
       - "8004:8004"
     env_file: config/.env
@@ -52,7 +52,7 @@ services:
   mcp-notifications:
     build: .
     entrypoint: ["python", "-m"]
-    command: ["thenightops.mcp_servers.notifications.server"]
+    command: ["nightops.mcp_servers.notifications.server"]
     ports:
       - "8005:8005"
     env_file: config/.env

@@ -390,7 +390,7 @@ def create_app(port: int = 8888) -> FastAPI:
             if event_type == EventType.TOOL_CALLED.value:
                 app.investigation_store.add_timeline_event(
                     investigation_id,
-                    event.get("agent", "thenightops"),
+                    event.get("agent", "nightops"),
                     event_type,
                     f"Called {event.get('tool_name', '?')}: {event.get('tool_input', '')[:200]}",
                     tool_name=event.get("tool_name"),
@@ -399,25 +399,25 @@ def create_app(port: int = 8888) -> FastAPI:
                 app.investigation_store.add_finding(
                     investigation_id,
                     event.get("severity", "medium"),
-                    event.get("source_agent", "thenightops"),
+                    event.get("source_agent", "nightops"),
                     event.get("description", ""),
                 )
                 app.investigation_store.add_timeline_event(
                     investigation_id,
-                    event.get("source_agent", "thenightops"),
+                    event.get("source_agent", "nightops"),
                     event_type,
                     event.get("description", ""),
                 )
             elif event_type == EventType.AGENT_DELEGATED.value:
                 app.investigation_store.add_timeline_event(
                     investigation_id,
-                    event.get("agent", "thenightops"),
+                    event.get("agent", "nightops"),
                     event_type,
                     event.get("task", "")[:300],
                 )
                 app.investigation_store.add_agent_action(
                     investigation_id,
-                    event.get("agent", "thenightops"),
+                    event.get("agent", "nightops"),
                     event.get("task", "")[:300],
                 )
             elif event_type == EventType.PHASE_CHANGED.value:

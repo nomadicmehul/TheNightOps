@@ -17,9 +17,9 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Optional
 
-from thenightops.core.config import EventWatcherConfig
-from thenightops.core.models import Incident, Severity
-from thenightops.ingestion.deduplication import AlertDeduplicator
+from nightops.core.config import EventWatcherConfig
+from nightops.core.models import Incident, Severity
+from nightops.ingestion.deduplication import AlertDeduplicator
 
 logger = logging.getLogger(__name__)
 
@@ -161,7 +161,7 @@ class EventWatcher:
         fingerprint = hashlib.sha256(fingerprint_key.encode()).hexdigest()[:16]
 
         # Check dedup using a lightweight WebhookAlert wrapper
-        from thenightops.core.models import WebhookAlert
+        from nightops.core.models import WebhookAlert
         alert = WebhookAlert(
             source="event_watcher",
             alert_name=f"K8s {reason}: {pod_name}",

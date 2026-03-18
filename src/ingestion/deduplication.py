@@ -14,7 +14,7 @@ import logging
 import time
 from typing import Optional
 
-from thenightops.core.models import AlertGroup, WebhookAlert
+from nightops.core.models import AlertGroup, WebhookAlert
 
 logger = logging.getLogger(__name__)
 

@@ -24,8 +24,8 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.routing import Route
 
-from thenightops.core.models import Incident, Severity, WebhookAlert
-from thenightops.ingestion.deduplication import AlertDeduplicator
+from nightops.core.models import Incident, Severity, WebhookAlert
+from nightops.ingestion.deduplication import AlertDeduplicator
 
 logger = logging.getLogger(__name__)
 

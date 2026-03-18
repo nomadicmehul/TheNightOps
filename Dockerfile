@@ -7,7 +7,7 @@
 # - SBOM and provenance attestations included
 # - Apache 2.0 licensed
 #
-# Docker Scout: Run `docker scout cves thenightops:latest` to scan for vulnerabilities
+# Docker Scout: Run `docker scout cves nightops:latest` to scan for vulnerabilities
 # Docker Desktop: Use the Images tab to view Scout analysis and DHI recommendations
 
 # ── Build Stage ────────────────────────────────────────────────────
@@ -33,7 +33,7 @@ FROM docker.io/library/python:3.11-slim AS runtime
 # Labels for Docker Scout and container metadata
 LABEL org.opencontainers.image.title="TheNightOps"
 LABEL org.opencontainers.image.description="Autonomous SRE Agent built on Google ADK and Remote MCP"
-LABEL org.opencontainers.image.source="https://github.com/yourusername/thenightops"
+LABEL org.opencontainers.image.source="https://github.com/yourusername/nightops"
 LABEL org.opencontainers.image.licenses="Apache-2.0"
 LABEL com.docker.scout.policy="hardened"
 
@@ -71,8 +71,8 @@ USER nightops
 
 # Health check for container orchestration
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD python -c "import thenightops; print('ok')" || exit 1
+    CMD python -c "import nightops; print('ok')" || exit 1
 
 # Default command — run the CLI
-ENTRYPOINT ["python", "-m", "thenightops.cli"]
+ENTRYPOINT ["python", "-m", "nightops.cli"]
 CMD ["--help"]

@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from thenightops.core.config import NightOpsConfig
+from nightops.core.config import NightOpsConfig
 
 
 def test_default_config():

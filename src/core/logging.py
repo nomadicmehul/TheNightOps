@@ -44,7 +44,7 @@ def setup_logging(verbose: bool = False) -> logging.Logger:
         ],
     )
 
-    logger = logging.getLogger("thenightops")
+    logger = logging.getLogger("nightops")
     logger.setLevel(level)
     return logger
 

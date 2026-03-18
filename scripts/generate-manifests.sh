@@ -12,7 +12,7 @@
 #   - OR set environment variables directly before running
 #
 # Optional:
-#   IMAGE=us-central1-docker.pkg.dev/my-project/thenightops/nightops-agent:latest
+#   IMAGE=us-central1-docker.pkg.dev/my-project/nightops/nightops-agent:latest
 
 set -euo pipefail
 
@@ -56,8 +56,8 @@ GKE_CLUSTER_LOCATION="${GKE_CLUSTER_LOCATION:-us-central1-a}"
 REGION="${GCP_REGION:-us-central1}"
 
 # Container images — default to Artifact Registry paths
-IMAGE="${IMAGE:-${REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/thenightops/nightops-agent:latest}"
-DEMO_IMAGE="${DEMO_IMAGE:-${REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/thenightops/nightops-demo-api:latest}"
+IMAGE="${IMAGE:-${REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/nightops/nightops-agent:latest}"
+DEMO_IMAGE="${DEMO_IMAGE:-${REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/nightops/nightops-demo-api:latest}"
 
 # Optional secrets — default to empty
 SLACK_BOT_TOKEN="${SLACK_BOT_TOKEN:-}"
@@ -71,7 +71,7 @@ FROM_EMAIL="${FROM_EMAIL:-}"
 TELEGRAM_BOT_TOKEN="${TELEGRAM_BOT_TOKEN:-}"
 TELEGRAM_CHAT_ID="${TELEGRAM_CHAT_ID:-}"
 
-SA_EMAIL="thenightops-agent@${GCP_PROJECT_ID}.iam.gserviceaccount.com"
+SA_EMAIL="nightops-agent@${GCP_PROJECT_ID}.iam.gserviceaccount.com"
 
 # ── Prepare output directory ──────────────────────────────────────
 rm -rf "${OUTPUT_DIR}"
@@ -112,7 +112,7 @@ metadata:
   name: nightops-secrets
   namespace: nightops
   labels:
-    app.kubernetes.io/part-of: thenightops
+    app.kubernetes.io/part-of: nightops
 type: Opaque
 stringData:
   GOOGLE_API_KEY: "${GOOGLE_API_KEY}"

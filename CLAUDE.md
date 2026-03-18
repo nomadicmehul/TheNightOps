@@ -7,7 +7,7 @@
 - **License:** Apache 2.0
 - **Python:** 3.11+
 - **Package manager:** pip with hatchling build backend
-- **CLI entry point:** `nightops` (mapped to `thenightops.cli:app`)
+- **CLI entry point:** `nightops` (mapped to `nightops.cli:app`)
 
 ## Architecture
 
@@ -63,7 +63,7 @@ Multi-agent system using Google ADK for orchestration and MCP (Model Context Pro
 ## Project Structure
 
 ```
-src/                          # Main source (packaged as `thenightops`)
+src/                          # Main source (packaged as `nightops`)
   agents/                     # ADK agents (6 agents)
   core/                       # Config, models, logging, autodiscovery
   ingestion/                  # Webhook receiver, dedup, event watcher

@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from thenightops.core.models import (
+from nightops.core.models import (
     AlertGroup,
     AnomalyCheck,
     ClusterInfo,
@@ -173,7 +173,7 @@ class TestAlertGroup:
 
 class TestAlertDeduplicator:
     def test_new_alert_returns_true(self):
-        from thenightops.ingestion.deduplication import AlertDeduplicator
+        from nightops.ingestion.deduplication import AlertDeduplicator
 
         dedup = AlertDeduplicator(window_seconds=300)
         alert = WebhookAlert(
@@ -185,7 +185,7 @@ class TestAlertDeduplicator:
         assert dedup.check_and_add(alert) is True
 
     def test_duplicate_alert_returns_false(self):
-        from thenightops.ingestion.deduplication import AlertDeduplicator
+        from nightops.ingestion.deduplication import AlertDeduplicator
 
         dedup = AlertDeduplicator(window_seconds=300)
         alert = WebhookAlert(
@@ -198,7 +198,7 @@ class TestAlertDeduplicator:
         assert dedup.check_and_add(alert) is False
 
     def test_different_alerts_both_new(self):
-        from thenightops.ingestion.deduplication import AlertDeduplicator
+        from nightops.ingestion.deduplication import AlertDeduplicator
 
         dedup = AlertDeduplicator(window_seconds=300)
         a1 = WebhookAlert(source="grafana", alert_name="HighErrorRate", service="demo-api", namespace="default")
@@ -207,7 +207,7 @@ class TestAlertDeduplicator:
         assert dedup.check_and_add(a2) is True
 
     def test_resolve_removes_group(self):
-        from thenightops.ingestion.deduplication import AlertDeduplicator
+        from nightops.ingestion.deduplication import AlertDeduplicator
 
         dedup = AlertDeduplicator(window_seconds=300)
         alert = WebhookAlert(source="grafana", alert_name="HighErrorRate", service="demo-api", namespace="default")
@@ -221,7 +221,7 @@ class TestAlertDeduplicator:
         assert dedup.check_and_add(alert) is True
 
     def test_get_active_groups(self):
-        from thenightops.ingestion.deduplication import AlertDeduplicator
+        from nightops.ingestion.deduplication import AlertDeduplicator
 
         dedup = AlertDeduplicator(window_seconds=300)
         a1 = WebhookAlert(source="grafana", alert_name="HighErrorRate", service="demo-api", namespace="default")
@@ -231,7 +231,7 @@ class TestAlertDeduplicator:
         assert len(dedup.get_active_groups()) == 2
 
     def test_duplicate_increments_count(self):
-        from thenightops.ingestion.deduplication import AlertDeduplicator
+        from nightops.ingestion.deduplication import AlertDeduplicator
 
         dedup = AlertDeduplicator(window_seconds=300)
         alert = WebhookAlert(source="grafana", alert_name="HighErrorRate", service="demo-api", namespace="default")
@@ -274,8 +274,8 @@ class TestIncidentMemory:
         )
 
     def test_record_and_find_similar(self, tmp_path):
-        from thenightops.core.config import IntelligenceConfig
-        from thenightops.intelligence.incident_memory import IncidentMemory
+        from nightops.core.config import IntelligenceConfig
+        from nightops.intelligence.incident_memory import IncidentMemory
 
         config = IntelligenceConfig(store_path=str(tmp_path / "incidents"), similarity_threshold=0.1)
         memory = IncidentMemory(config)
@@ -293,8 +293,8 @@ class TestIncidentMemory:
         assert results[0].incident_id == "INC-001"
 
     def test_pattern_stats(self, tmp_path):
-        from thenightops.core.config import IntelligenceConfig
-        from thenightops.intelligence.incident_memory import IncidentMemory
+        from nightops.core.config import IntelligenceConfig
+        from nightops.intelligence.incident_memory import IncidentMemory
 
         config = IntelligenceConfig(store_path=str(tmp_path / "incidents"), similarity_threshold=0.1)
         memory = IncidentMemory(config)
@@ -306,8 +306,8 @@ class TestIncidentMemory:
         assert "oom_kill" in stats
 
     def test_persistence(self, tmp_path):
-        from thenightops.core.config import IntelligenceConfig
-        from thenightops.intelligence.incident_memory import IncidentMemory
+        from nightops.core.config import IntelligenceConfig
+        from nightops.intelligence.incident_memory import IncidentMemory
 
         config = IntelligenceConfig(store_path=str(tmp_path / "incidents"))
         memory = IncidentMemory(config)
@@ -320,8 +320,8 @@ class TestIncidentMemory:
         assert memory2.total_records == 1
 
     def test_empty_find_similar(self, tmp_path):
-        from thenightops.core.config import IntelligenceConfig
-        from thenightops.intelligence.incident_memory import IncidentMemory
+        from nightops.core.config import IntelligenceConfig
+        from nightops.intelligence.incident_memory import IncidentMemory
 
         config = IntelligenceConfig(store_path=str(tmp_path / "incidents"))
         memory = IncidentMemory(config)
@@ -334,7 +334,7 @@ class TestIncidentMemory:
 
 class TestPolicyEngine:
     def test_auto_approve_level0(self):
-        from thenightops.remediation.policy_engine import PolicyEngine
+        from nightops.remediation.policy_engine import PolicyEngine
 
         engine = PolicyEngine()
         action = RemediationAction(action_type="silence_alert", description="Silence alert")
@@ -343,7 +343,7 @@ class TestPolicyEngine:
         assert result.approved is True
 
     def test_environment_gated_dev(self):
-        from thenightops.remediation.policy_engine import PolicyEngine
+        from nightops.remediation.policy_engine import PolicyEngine
 
         engine = PolicyEngine()
         action = RemediationAction(action_type="restart_pod", description="Restart pod")
@@ -351,7 +351,7 @@ class TestPolicyEngine:
         assert result.auto_approved is True
 
     def test_environment_gated_prod(self):
-        from thenightops.remediation.policy_engine import PolicyEngine
+        from nightops.remediation.policy_engine import PolicyEngine
 
         engine = PolicyEngine()
         action = RemediationAction(action_type="restart_pod", description="Restart pod")
@@ -360,7 +360,7 @@ class TestPolicyEngine:
         assert result.approved is None  # Pending human approval
 
     def test_always_require_approval(self):
-        from thenightops.remediation.policy_engine import PolicyEngine
+        from nightops.remediation.policy_engine import PolicyEngine
 
         engine = PolicyEngine()
         action = RemediationAction(action_type="rollback_deployment", description="Rollback")
@@ -369,7 +369,7 @@ class TestPolicyEngine:
         assert result.approved is None
 
     def test_blocked_action(self):
-        from thenightops.remediation.policy_engine import PolicyEngine
+        from nightops.remediation.policy_engine import PolicyEngine
 
         engine = PolicyEngine()
         action = RemediationAction(action_type="delete_namespace", description="Delete ns")
@@ -379,7 +379,7 @@ class TestPolicyEngine:
         assert "BLOCKED" in result.result
 
     def test_get_suggested_remediations_oom(self):
-        from thenightops.remediation.policy_engine import PolicyEngine
+        from nightops.remediation.policy_engine import PolicyEngine
 
         engine = PolicyEngine()
         actions = engine.get_suggested_remediations("oom_kill", environment="staging")
@@ -388,7 +388,7 @@ class TestPolicyEngine:
         assert "restart_pod" in action_types
 
     def test_policy_summary(self):
-        from thenightops.remediation.policy_engine import PolicyEngine
+        from nightops.remediation.policy_engine import PolicyEngine
 
         engine = PolicyEngine()
         summary = engine.get_policy_summary()
@@ -397,7 +397,7 @@ class TestPolicyEngine:
         assert summary["delete_namespace"] == "BLOCKED"
 
     def test_load_from_yaml(self, tmp_path):
-        from thenightops.remediation.policy_engine import PolicyEngine
+        from nightops.remediation.policy_engine import PolicyEngine
 
         policy_yaml = tmp_path / "policies.yaml"
         policy_yaml.write_text("""
@@ -412,7 +412,7 @@ policies:
         assert result.auto_approved is True
 
     def test_unknown_action_requires_approval(self):
-        from thenightops.remediation.policy_engine import PolicyEngine
+        from nightops.remediation.policy_engine import PolicyEngine
 
         engine = PolicyEngine()
         action = RemediationAction(action_type="unknown_action", description="Unknown")
@@ -444,8 +444,8 @@ class TestMetricsTracker:
         )
 
     def test_record_investigation(self, tmp_path):
-        from thenightops.core.config import MetricsConfig
-        from thenightops.metrics.tracker import MetricsTracker
+        from nightops.core.config import MetricsConfig
+        from nightops.metrics.tracker import MetricsTracker
 
         config = MetricsConfig(store_path=str(tmp_path / "metrics"))
         tracker = MetricsTracker(config)
@@ -458,8 +458,8 @@ class TestMetricsTracker:
         assert metrics.confidence_score == 0.85
 
     def test_impact_summary(self, tmp_path):
-        from thenightops.core.config import MetricsConfig
-        from thenightops.metrics.tracker import MetricsTracker
+        from nightops.core.config import MetricsConfig
+        from nightops.metrics.tracker import MetricsTracker
 
         config = MetricsConfig(store_path=str(tmp_path / "metrics"), estimated_manual_mttr_seconds=2700.0)
         tracker = MetricsTracker(config)
@@ -476,8 +476,8 @@ class TestMetricsTracker:
         assert summary.estimated_hours_saved > 0
 
     def test_empty_impact_summary(self, tmp_path):
-        from thenightops.core.config import MetricsConfig
-        from thenightops.metrics.tracker import MetricsTracker
+        from nightops.core.config import MetricsConfig
+        from nightops.metrics.tracker import MetricsTracker
 
         config = MetricsConfig(store_path=str(tmp_path / "metrics"))
         tracker = MetricsTracker(config)
@@ -485,8 +485,8 @@ class TestMetricsTracker:
         assert summary.total_incidents == 0
 
     def test_mark_correct(self, tmp_path):
-        from thenightops.core.config import MetricsConfig
-        from thenightops.metrics.tracker import MetricsTracker
+        from nightops.core.config import MetricsConfig
+        from nightops.metrics.tracker import MetricsTracker
 
         config = MetricsConfig(store_path=str(tmp_path / "metrics"))
         tracker = MetricsTracker(config)
@@ -497,8 +497,8 @@ class TestMetricsTracker:
         assert tracker.mark_correct("INC-999", True) is False
 
     def test_persistence(self, tmp_path):
-        from thenightops.core.config import MetricsConfig
-        from thenightops.metrics.tracker import MetricsTracker
+        from nightops.core.config import MetricsConfig
+        from nightops.metrics.tracker import MetricsTracker
 
         config = MetricsConfig(store_path=str(tmp_path / "metrics"))
         tracker = MetricsTracker(config)
@@ -515,14 +515,14 @@ class TestMetricsTracker:
 
 class TestAnomalyDetectorAgent:
     def test_agent_creation(self):
-        from thenightops.agents.anomaly_detector import create_anomaly_detector_agent
+        from nightops.agents.anomaly_detector import create_anomaly_detector_agent
 
         agent = create_anomaly_detector_agent()
         assert agent.name == "anomaly_detector"
         assert "proactive" in agent.description.lower() or "anomal" in agent.description.lower()
 
     def test_agent_custom_model(self):
-        from thenightops.agents.anomaly_detector import create_anomaly_detector_agent
+        from nightops.agents.anomaly_detector import create_anomaly_detector_agent
 
         agent = create_anomaly_detector_agent(model="gemini-3-flash")
         assert agent.model == "gemini-3-flash"
@@ -533,14 +533,14 @@ class TestAnomalyDetectorAgent:
 
 class TestConfigV2:
     def test_supported_models(self):
-        from thenightops.core.config import SUPPORTED_MODELS
+        from nightops.core.config import SUPPORTED_MODELS
 
         assert "gemini-3.1-pro" in SUPPORTED_MODELS
         assert "gemini-3-flash" in SUPPORTED_MODELS
         assert "gemini-2.5-flash" in SUPPORTED_MODELS
 
     def test_webhook_config_defaults(self):
-        from thenightops.core.config import WebhookConfig
+        from nightops.core.config import WebhookConfig
 
         config = WebhookConfig()
         assert config.port == 8090
@@ -548,39 +548,39 @@ class TestConfigV2:
         assert config.enabled is True
 
     def test_event_watcher_config_defaults(self):
-        from thenightops.core.config import EventWatcherConfig
+        from nightops.core.config import EventWatcherConfig
 
         config = EventWatcherConfig()
         assert "OOMKilled" in config.watch_reasons
         assert "CrashLoopBackOff" in config.watch_reasons
 
     def test_intelligence_config_defaults(self):
-        from thenightops.core.config import IntelligenceConfig
+        from nightops.core.config import IntelligenceConfig
 
         config = IntelligenceConfig()
         assert config.similarity_threshold == 0.3
 
     def test_remediation_config_defaults(self):
-        from thenightops.core.config import RemediationConfig
+        from nightops.core.config import RemediationConfig
 
         config = RemediationConfig()
         assert config.default_require_approval is True
 
     def test_proactive_config_defaults(self):
-        from thenightops.core.config import ProactiveConfig
+        from nightops.core.config import ProactiveConfig
 
         config = ProactiveConfig()
         assert "crashloop_pods" in config.checks
         assert config.memory_threshold_percent == 85.0
 
     def test_metrics_config_defaults(self):
-        from thenightops.core.config import MetricsConfig
+        from nightops.core.config import MetricsConfig
 
         config = MetricsConfig()
         assert config.estimated_manual_mttr_seconds == 2700.0
 
     def test_nightops_config_has_new_sections(self):
-        from thenightops.core.config import NightOpsConfig
+        from nightops.core.config import NightOpsConfig
 
         config = NightOpsConfig()
         assert config.webhook is not None

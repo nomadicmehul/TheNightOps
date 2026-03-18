@@ -28,12 +28,12 @@ from google.adk.agents import Agent
 from google.adk.tools.mcp_tool import McpToolset, SseConnectionParams, StdioConnectionParams, StreamableHTTPConnectionParams
 from mcp import StdioServerParameters
 
-from thenightops.agents.communication_drafter import create_communication_drafter_agent
-from thenightops.agents.deployment_correlator import create_deployment_correlator_agent
-from thenightops.agents.log_analyst import create_log_analyst_agent
-from thenightops.agents.runbook_retriever import create_runbook_retriever_agent
-from thenightops.agents.anomaly_detector import create_anomaly_detector_agent
-from thenightops.core.config import NightOpsConfig
+from nightops.agents.communication_drafter import create_communication_drafter_agent
+from nightops.agents.deployment_correlator import create_deployment_correlator_agent
+from nightops.agents.log_analyst import create_log_analyst_agent
+from nightops.agents.runbook_retriever import create_runbook_retriever_agent
+from nightops.agents.anomaly_detector import create_anomaly_detector_agent
+from nightops.core.config import NightOpsConfig
 
 logger = logging.getLogger(__name__)
 
@@ -421,7 +421,7 @@ def create_root_orchestrator(
 
     # Build the root orchestrator
     root_agent = Agent(
-        name="thenightops",
+        name="nightops",
         model=model,
         description=(
             "TheNightOps — Autonomous SRE agent that investigates production "
@@ -476,7 +476,7 @@ async def run_investigation(
     historical_context = ""
     if config.intelligence.enabled:
         try:
-            from thenightops.intelligence.incident_memory import IncidentMemory
+            from nightops.intelligence.incident_memory import IncidentMemory
             memory = IncidentMemory(config.intelligence)
             similar = memory.find_similar(incident_description)
             if similar:
@@ -496,7 +496,7 @@ async def run_investigation(
     remediation_context = ""
     if config.remediation.enabled:
         try:
-            from thenightops.remediation.policy_engine import PolicyEngine
+            from nightops.remediation.policy_engine import PolicyEngine
             engine = PolicyEngine(config.remediation.policy_path)
             summary = engine.get_policy_summary()
             remediation_context = "\n\n## Remediation Policies\n"
@@ -525,13 +525,13 @@ async def run_investigation(
 
     session_service = InMemorySessionService()
     session = await session_service.create_session(
-        app_name="thenightops",
+        app_name="nightops",
         user_id="nightops-system",
     )
 
     runner = Runner(
         agent=agent,
-        app_name="thenightops",
+        app_name="nightops",
         session_service=session_service,
     )
 
@@ -603,7 +603,7 @@ async def run_investigation(
             session_id=session.id,
             new_message=user_message,
         ):
-            author = event.author or "thenightops"
+            author = event.author or "nightops"
 
             # Phase inference: detect transitions based on agent activity
             if current_phase == 1 and author in sub_agent_names:
@@ -615,7 +615,7 @@ async def run_investigation(
                 sub_agents_seen.add(author)
 
             if (current_phase == 2
-                    and author == "thenightops"
+                    and author == "nightops"
                     and sub_agents_seen
                     and event.content and event.content.parts):
                 # Root agent producing text after sub-agents → Phase 3 (Synthesis)

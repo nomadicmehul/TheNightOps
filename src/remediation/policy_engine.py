@@ -20,7 +20,7 @@ from typing import Any, Optional
 
 import yaml
 
-from thenightops.core.models import RemediationAction, RemediationPolicy, Severity
+from nightops.core.models import RemediationAction, RemediationPolicy, Severity
 
 logger = logging.getLogger(__name__)
 

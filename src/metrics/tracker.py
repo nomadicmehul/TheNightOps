@@ -17,8 +17,8 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
 
-from thenightops.core.config import MetricsConfig
-from thenightops.core.models import (
+from nightops.core.config import MetricsConfig
+from nightops.core.models import (
     ImpactSummary,
     Investigation,
     InvestigationMetrics,

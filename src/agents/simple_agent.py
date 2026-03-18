@@ -27,7 +27,7 @@ from typing import Any
 from google.adk.agents import Agent
 from google.adk.tools import FunctionTool
 
-from thenightops.core.config import NightOpsConfig
+from nightops.core.config import NightOpsConfig
 
 logger = logging.getLogger(__name__)
 
@@ -312,7 +312,7 @@ def create_simple_agent(config: NightOpsConfig) -> Agent:
     ]
 
     agent = Agent(
-        name="thenightops_simple",
+        name="nightops_simple",
         model=model,
         description=(
             "TheNightOps Simple Mode — Single-agent Kubernetes investigator "
@@ -348,13 +348,13 @@ async def run_simple_investigation(
 
     session_service = InMemorySessionService()
     session = await session_service.create_session(
-        app_name="thenightops",
+        app_name="nightops",
         user_id="nightops-system",
     )
 
     runner = Runner(
         agent=agent,
-        app_name="thenightops",
+        app_name="nightops",
         session_service=session_service,
     )
 
@@ -393,7 +393,7 @@ async def run_simple_investigation(
     historical_context = ""
     if config.intelligence.enabled:
         try:
-            from thenightops.intelligence.incident_memory import IncidentMemory
+            from nightops.intelligence.incident_memory import IncidentMemory
             memory = IncidentMemory(config.intelligence)
             similar = memory.find_similar(incident_description)
             if similar:
@@ -429,7 +429,7 @@ async def run_simple_investigation(
             session_id=session.id,
             new_message=user_message,
         ):
-            author = event.author or "thenightops_simple"
+            author = event.author or "nightops_simple"
 
             # Track tool calls
             fn_calls = event.get_function_calls()

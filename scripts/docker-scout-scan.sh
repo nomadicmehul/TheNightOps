@@ -13,8 +13,8 @@
 
 set -euo pipefail
 
-PROJECT_ID="${GCP_PROJECT_ID:-thenightops}"
-AGENT_IMAGE="thenightops:latest"
+PROJECT_ID="${GCP_PROJECT_ID:-nightops}"
+AGENT_IMAGE="nightops:latest"
 DEMO_IMAGE="nightops-demo-api:latest"
 
 echo "╔═══════════════════════════════════════════════════╗"

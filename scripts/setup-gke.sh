@@ -22,7 +22,7 @@ REGION="${GCP_REGION:-us-central1}"
 ZONE="${GCP_ZONE:-us-central1-a}"
 MACHINE_TYPE="${MACHINE_TYPE:-e2-standard-2}"
 NUM_NODES="${NUM_NODES:-3}"
-SA_NAME="thenightops-agent"
+SA_NAME="nightops-agent"
 SA_EMAIL="${SA_NAME}@${PROJECT_ID}.iam.gserviceaccount.com"
 
 echo "╔═══════════════════════════════════════════════╗"
@@ -87,7 +87,7 @@ else
         --workload-pool="${PROJECT_ID}.svc.id.goog" \
         --logging=SYSTEM,WORKLOAD \
         --monitoring=SYSTEM \
-        --labels="app=thenightops,env=demo"
+        --labels="app=nightops,env=demo"
     echo "  ✓ Cluster created with Workload Identity"
 fi
 
@@ -176,9 +176,9 @@ fi
 # ── Create Artifact Registry ──────────────────────────────────
 echo ""
 echo "→ Creating Artifact Registry repository..."
-gcloud artifacts repositories describe thenightops \
+gcloud artifacts repositories describe nightops \
     --location="${REGION}" --project="${PROJECT_ID}" &>/dev/null \
-|| gcloud artifacts repositories create thenightops \
+|| gcloud artifacts repositories create nightops \
     --repository-format=docker \
     --location="${REGION}" \
     --project="${PROJECT_ID}" \
