@@ -3,7 +3,7 @@
 ## Project Overview
 
 **TheNightOps** — Autonomous SRE Agent for Kubernetes, built on Google ADK and Gemini.
-- **Version:** 0.3.0
+- **Version:** 0.1.0b1
 - **License:** Apache 2.0
 - **Python:** 3.11+
 - **Package manager:** pip with hatchling build backend
