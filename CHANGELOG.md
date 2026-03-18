@@ -7,11 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0b1] - 2026-03-18
+
 ### Added
 - GitHub Actions CI workflow (lint + test matrix on Python 3.11/3.12/3.13)
 - GitHub Actions release workflow (PyPI trusted publisher + GitHub Releases)
 - Dynamic version management via `src/__init__.py`
 - CHANGELOG.md
+- Beta version tagging (PEP 440)
 
 ## [0.3.0] - 2025-05-15
 
