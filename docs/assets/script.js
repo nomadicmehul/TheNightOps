@@ -1,5 +1,5 @@
 /* ============================================
-   TheNightOps — Website Interactivity
+   THE NightOps — Website Interactivity
    ============================================ */
 
 (function () {
@@ -101,7 +101,7 @@
 
     var lines = [
       { type: 'output', text: '' },
-      { type: 'info', text: '🌙 TheNightOps v0.1.0b1 — Autonomous SRE Agent' },
+      { type: 'info', text: '🌙 THE NightOps v0.1.0b1 — Triage. Heal. Evolve.' },
       { type: 'output', text: '' },
       { type: 'output', text: '[Phase 1/4] Triage — checking pod status...' },
       { type: 'success', text: '  Found: pod/api-server-7d4f9 OOMKilled (exit 137)' },
