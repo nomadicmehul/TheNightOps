@@ -2,8 +2,14 @@
 # Copy to config/nightops.yaml and fill in your values.
 
 agent:
-  # Supported: gemini-3.1-pro-preview, gemini-3-pro-preview,
-  #   gemini-2.5-pro, gemini-2.5-flash, gemini-2.0-flash
+  # ADK is model-agnostic — use any supported provider via LiteLLM.
+  # Gemini (native):    gemini-3.1-pro-preview, gemini-2.5-pro, gemini-2.5-flash
+  # OpenAI (LiteLLM):   openai/gpt-4o, openai/gpt-4o-mini
+  # Anthropic (LiteLLM): anthropic/claude-sonnet-4-6, anthropic/claude-haiku-4-5
+  # Azure OpenAI:       azure/gpt-4o
+  # AWS Bedrock:        bedrock/anthropic.claude-sonnet-4-6-20250514-v1:0
+  # Self-hosted:        ollama/llama3.3, ollama/mistral, ollama/deepseek-r1
+  # See: https://google.github.io/adk-docs/agents/models/litellm/
   model: gemini-3.1-pro-preview
   max_investigation_time: 300
   max_agent_turns: 20

@@ -237,8 +237,12 @@ class MetricsConfig(BaseSettings):
 # ── Agent Config ────────────────────────────────────────────────────
 
 
-# Supported Gemini models (verified available in Gemini API)
+# Supported models — ADK is model-agnostic via LiteLLM integration.
+# Native Gemini models work directly; other providers use the LiteLLM wrapper.
+# Format for non-Gemini: "provider/model-name" (e.g., "openai/gpt-4o")
+# Docs: https://google.github.io/adk-docs/agents/models/litellm/
 SUPPORTED_MODELS = [
+    # ── Google Gemini (native) ───────────────────────────────────
     # Gemini 3.x series (preview)
     "gemini-3.1-pro-preview",  # Latest, most advanced
     "gemini-3-pro-preview",    # Gemini 3 Pro preview
@@ -247,6 +251,29 @@ SUPPORTED_MODELS = [
     "gemini-2.5-pro",          # Advanced reasoning, stable
     "gemini-2.5-flash",        # Fast, proven stable
     "gemini-2.0-flash",        # Previous generation, reliable
+    # ── OpenAI (via LiteLLM) ─────────────────────────────────────
+    # Requires: OPENAI_API_KEY env var
+    "openai/gpt-4o",           # Most capable OpenAI model
+    "openai/gpt-4o-mini",      # Fast, cost-effective
+    "openai/gpt-4.1",          # Latest GPT-4.1
+    "openai/gpt-4.1-mini",     # Fast GPT-4.1 variant
+    # ── Anthropic Claude (via LiteLLM) ───────────────────────────
+    # Requires: ANTHROPIC_API_KEY env var
+    "anthropic/claude-sonnet-4-6",  # Latest Sonnet
+    "anthropic/claude-haiku-4-5",   # Fast, cost-effective
+    # ── Azure OpenAI (via LiteLLM) ───────────────────────────────
+    # Requires: AZURE_API_KEY, AZURE_API_BASE, AZURE_API_VERSION env vars
+    "azure/gpt-4o",            # Azure-hosted GPT-4o
+    "azure/gpt-4o-mini",       # Azure-hosted GPT-4o-mini
+    # ── AWS Bedrock (via LiteLLM) ────────────────────────────────
+    # Requires: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY env vars
+    "bedrock/anthropic.claude-sonnet-4-6-20250514-v1:0",
+    "bedrock/anthropic.claude-haiku-4-5-20251001-v1:0",
+    # ── Self-hosted / Local (via LiteLLM) ────────────────────────
+    # Requires: model running locally (e.g., ollama serve)
+    "ollama/llama3.3",         # Meta Llama 3.3 (local)
+    "ollama/mistral",          # Mistral (local)
+    "ollama/deepseek-r1",      # DeepSeek R1 (local)
 ]
 
 
