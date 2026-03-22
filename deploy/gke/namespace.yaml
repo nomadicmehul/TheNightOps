@@ -3,5 +3,5 @@ kind: Namespace
 metadata:
   name: nightops
   labels:
-    app.kubernetes.io/part-of: thenightops
+    app.kubernetes.io/part-of: nightops
     app.kubernetes.io/managed-by: gcloud

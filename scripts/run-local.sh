@@ -54,17 +54,17 @@ fi
 cleanup() {
     echo ""
     echo "Shutting down TheNightOps..."
-    pkill -f "thenightops.mcp_servers" 2>/dev/null || true
-    pkill -f "thenightops.dashboard" 2>/dev/null || true
+    pkill -f "nightops.mcp_servers" 2>/dev/null || true
+    pkill -f "nightops.dashboard" 2>/dev/null || true
     kill $(jobs -p) 2>/dev/null || true
     echo "Done."
 }
 trap cleanup EXIT INT TERM
 
 # ── Kill any existing TheNightOps processes ──────────────────────
-pkill -f "thenightops.mcp_servers" 2>/dev/null || true
-pkill -f "thenightops.dashboard" 2>/dev/null || true
-pkill -f "thenightops.cli.*watch" 2>/dev/null || true
+pkill -f "nightops.mcp_servers" 2>/dev/null || true
+pkill -f "nightops.dashboard" 2>/dev/null || true
+pkill -f "nightops.cli.*watch" 2>/dev/null || true
 for port in 8001 8002 8888 8090; do
     lsof -ti:$port 2>/dev/null | xargs kill -9 2>/dev/null || true
 done
@@ -75,9 +75,9 @@ if [ "$LOCAL_MODE" = true ]; then
     echo "Mode: LOCAL (custom MCP servers on ports 8001/8002)"
     echo ""
     echo "Starting Kubernetes MCP server on port 8002..."
-    python3 -m thenightops.mcp_servers.kubernetes.server &
+    python3 -m nightops.mcp_servers.kubernetes.server &
     echo "Starting Cloud Logging MCP server on port 8001..."
-    python3 -m thenightops.mcp_servers.cloud_logging.server &
+    python3 -m nightops.mcp_servers.cloud_logging.server &
     sleep 2
 else
     echo "Mode: GCP (official Google Cloud MCP servers)"
@@ -90,7 +90,7 @@ else
 fi
 
 echo "Starting Dashboard on port 8888..."
-python3 -m thenightops.dashboard.app &
+python3 -m nightops.dashboard.app &
 sleep 2
 
 echo ""
@@ -112,4 +112,4 @@ echo "Starting agent watch mode... (Ctrl+C to stop)"
 echo ""
 
 # Start agent watch (foreground — Ctrl+C triggers cleanup)
-python3 -m thenightops.cli agent watch
+python3 -m nightops.cli agent watch

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from thenightops.core.models import (
+from nightops.core.models import (
     Finding,
     Incident,
     IncidentStatus,

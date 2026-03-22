@@ -21,8 +21,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
-from thenightops.core.config import IntelligenceConfig
-from thenightops.core.models import (
+from nightops.core.config import IntelligenceConfig
+from nightops.core.models import (
     IncidentRecord,
     Investigation,
     SimilarIncident,

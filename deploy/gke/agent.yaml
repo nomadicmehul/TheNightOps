@@ -7,11 +7,11 @@ metadata:
   name: nightops-agent
   namespace: nightops
   labels:
-    app.kubernetes.io/part-of: thenightops
+    app.kubernetes.io/part-of: nightops
     app.kubernetes.io/component: agent
   annotations:
     # Uncomment for Workload Identity (recommended for production):
-    # iam.gke.io/gcp-service-account: thenightops-agent@YOUR_PROJECT_ID.iam.gserviceaccount.com
+    # iam.gke.io/gcp-service-account: nightops-agent@YOUR_PROJECT_ID.iam.gserviceaccount.com
     {}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -19,7 +19,7 @@ kind: ClusterRole
 metadata:
   name: nightops-agent
   labels:
-    app.kubernetes.io/part-of: thenightops
+    app.kubernetes.io/part-of: nightops
 rules:
   # Read-only access to pods, deployments, events (for investigation)
   - apiGroups: [""]
@@ -41,7 +41,7 @@ kind: ClusterRoleBinding
 metadata:
   name: nightops-agent
   labels:
-    app.kubernetes.io/part-of: thenightops
+    app.kubernetes.io/part-of: nightops
 subjects:
   - kind: ServiceAccount
     name: nightops-agent
@@ -57,7 +57,7 @@ metadata:
   name: nightops-data
   namespace: nightops
   labels:
-    app.kubernetes.io/part-of: thenightops
+    app.kubernetes.io/part-of: nightops
     app.kubernetes.io/component: agent
 spec:
   accessModes:
@@ -74,7 +74,7 @@ metadata:
   namespace: nightops
   labels:
     app.kubernetes.io/name: nightops-agent
-    app.kubernetes.io/part-of: thenightops
+    app.kubernetes.io/part-of: nightops
     app.kubernetes.io/component: agent
 spec:
   replicas: 1
@@ -85,14 +85,14 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: nightops-agent
-        app.kubernetes.io/part-of: thenightops
+        app.kubernetes.io/part-of: nightops
         app.kubernetes.io/component: agent
     spec:
       serviceAccountName: nightops-agent
       containers:
         - name: agent
           image: AGENT_IMAGE  # Replaced by deploy script or kustomize
-          command: ["python", "-m", "thenightops.cli", "agent", "watch"]
+          command: ["python", "-m", "nightops.cli", "agent", "watch"]
           ports:
             - name: webhook
               containerPort: 8090
@@ -154,7 +154,7 @@ metadata:
   namespace: nightops
   labels:
     app.kubernetes.io/name: nightops-agent
-    app.kubernetes.io/part-of: thenightops
+    app.kubernetes.io/part-of: nightops
     app.kubernetes.io/component: webhook
 spec:
   selector:

@@ -6,7 +6,7 @@ kind: Namespace
 metadata:
   name: nightops-demo
   labels:
-    app.kubernetes.io/part-of: thenightops
+    app.kubernetes.io/part-of: nightops
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -16,7 +16,7 @@ metadata:
   labels:
     app: demo-api
     version: v1
-    app.kubernetes.io/part-of: thenightops
+    app.kubernetes.io/part-of: nightops
 spec:
   replicas: 3
   selector:
@@ -83,7 +83,7 @@ metadata:
   namespace: nightops-demo
   labels:
     app: demo-db
-    app.kubernetes.io/part-of: thenightops
+    app.kubernetes.io/part-of: nightops
 spec:
   replicas: 1
   selector:

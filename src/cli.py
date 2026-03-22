@@ -30,8 +30,8 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
-from thenightops.core.config import NightOpsConfig, SUPPORTED_MODELS
-from thenightops.core.logging import console as rich_console, print_banner
+from nightops.core.config import NightOpsConfig, SUPPORTED_MODELS
+from nightops.core.logging import console as rich_console, print_banner
 
 app = typer.Typer(
     name="nightops",
@@ -53,7 +53,7 @@ app.add_typer(agent_app, name="agent")
 @app.command()
 def init() -> None:
     """Run the interactive setup wizard to configure TheNightOps."""
-    from thenightops.init_wizard import run_wizard
+    from nightops.init_wizard import run_wizard
 
     run_wizard()
 
@@ -80,7 +80,7 @@ def auto_config(
     )
 
     async def _discover():
-        from thenightops.core.autodiscovery import EnvironmentDiscovery, generate_config_from_discovery
+        from nightops.core.autodiscovery import EnvironmentDiscovery, generate_config_from_discovery
         import yaml
 
         discovery = EnvironmentDiscovery()
@@ -159,7 +159,7 @@ def dashboard(
     """Launch the real-time investigation dashboard."""
     import webbrowser
 
-    from thenightops.dashboard.app import create_app
+    from nightops.dashboard.app import create_app
 
     print_banner()
     rich_console.print(
@@ -192,7 +192,7 @@ def metrics(
     print_banner()
     config = _load_config(config_path)
 
-    from thenightops.metrics.tracker import MetricsTracker
+    from nightops.metrics.tracker import MetricsTracker
 
     tracker = MetricsTracker(config.metrics)
     summary = tracker.get_impact_summary(period_days=period)
@@ -228,7 +228,7 @@ def policies(
     print_banner()
     config = _load_config(config_path)
 
-    from thenightops.remediation.policy_engine import PolicyEngine
+    from nightops.remediation.policy_engine import PolicyEngine
 
     engine = PolicyEngine(config.remediation.policy_path)
     summary = engine.get_policy_summary()
@@ -359,10 +359,10 @@ def mcp_start(
     config = _load_config(config_path)
 
     custom_servers = {
-        "kubernetes": ("thenightops.mcp_servers.kubernetes.server", config.kubernetes.port),
-        "cloud_logging": ("thenightops.mcp_servers.cloud_logging.server", config.cloud_logging_custom.port),
-        "slack": ("thenightops.mcp_servers.slack.server", config.slack.port),
-        "notifications": ("thenightops.mcp_servers.notifications.server", config.notifications.port),
+        "kubernetes": ("nightops.mcp_servers.kubernetes.server", config.kubernetes.port),
+        "cloud_logging": ("nightops.mcp_servers.cloud_logging.server", config.cloud_logging_custom.port),
+        "slack": ("nightops.mcp_servers.slack.server", config.slack.port),
+        "notifications": ("nightops.mcp_servers.notifications.server", config.notifications.port),
     }
 
     if all_servers:
@@ -468,7 +468,7 @@ def demo_deploy(
         rich_console.print("[red]GCP_PROJECT_ID not set. Configure it in config/.env or nightops.yaml[/red]")
         raise typer.Exit(1)
 
-    demo_image = f"{region}-docker.pkg.dev/{project_id}/thenightops/nightops-demo-api:latest"
+    demo_image = f"{region}-docker.pkg.dev/{project_id}/nightops/nightops-demo-api:latest"
 
     rich_console.print(Panel(
         f"Deploying NightOps demo to GKE\nProject: {project_id}\nImage: {demo_image}",
@@ -685,12 +685,12 @@ async def _run_watch_mode(config: NightOpsConfig, simple_mode: bool = False) -> 
     import os
     import uvicorn
 
-    from thenightops.ingestion.deduplication import AlertDeduplicator
+    from nightops.ingestion.deduplication import AlertDeduplicator
 
     if simple_mode:
-        from thenightops.agents.simple_agent import run_simple_investigation as _run_inv
+        from nightops.agents.simple_agent import run_simple_investigation as _run_inv
     else:
-        from thenightops.agents.root_orchestrator import run_investigation as _run_inv
+        from nightops.agents.root_orchestrator import run_investigation as _run_inv
 
     deduplicator = AlertDeduplicator(
         window_seconds=config.webhook.dedup_window_seconds,
@@ -732,7 +732,7 @@ async def _run_watch_mode(config: NightOpsConfig, simple_mode: bool = False) -> 
     tasks = []
 
     if config.webhook.enabled:
-        from thenightops.ingestion.webhook_receiver import create_webhook_app
+        from nightops.ingestion.webhook_receiver import create_webhook_app
 
         webhook_app = create_webhook_app(
             deduplicator=deduplicator,
@@ -749,7 +749,7 @@ async def _run_watch_mode(config: NightOpsConfig, simple_mode: bool = False) -> 
         rich_console.print(f"[green]✓ Webhook receiver started on port {config.webhook.port}[/green]")
 
     if config.event_watcher.enabled:
-        from thenightops.ingestion.event_watcher import EventWatcher
+        from nightops.ingestion.event_watcher import EventWatcher
 
         watcher = EventWatcher(
             config=config.event_watcher,
@@ -760,7 +760,7 @@ async def _run_watch_mode(config: NightOpsConfig, simple_mode: bool = False) -> 
         rich_console.print("[green]✓ Kubernetes event watcher started[/green]")
 
     if config.proactive.enabled:
-        from thenightops.proactive.scheduler import ProactiveScheduler
+        from nightops.proactive.scheduler import ProactiveScheduler
 
         scheduler = ProactiveScheduler(
             config=config.proactive,
@@ -822,7 +822,7 @@ async def _run_simple_single_investigation(
 ) -> None:
     """Run a single investigation using simple mode (kubectl tools, no MCP)."""
     import os
-    from thenightops.agents.simple_agent import run_simple_investigation
+    from nightops.agents.simple_agent import run_simple_investigation
 
     rich_console.print(
         Panel(
@@ -860,7 +860,7 @@ async def _run_simple_single_investigation(
 async def _run_single_investigation(config: NightOpsConfig, incident_description: str) -> None:
     """Run a single incident investigation."""
     import os
-    from thenightops.agents.root_orchestrator import run_investigation
+    from nightops.agents.root_orchestrator import run_investigation
 
     rich_console.print(
         Panel(

@@ -8,8 +8,8 @@ TODO: Fix model resolution — preview models (gemini-3.1-pro-preview)
       use a GA model or configure the API endpoint correctly.
 """
 
-from thenightops.core.config import NightOpsConfig
-from thenightops.agents.simple_agent import create_simple_agent
+from nightops.core.config import NightOpsConfig
+from nightops.agents.simple_agent import create_simple_agent
 
 config = NightOpsConfig()
 root_agent = create_simple_agent(config)

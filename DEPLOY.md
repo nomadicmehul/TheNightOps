@@ -119,7 +119,7 @@ kubectl apply -f deploy/generated/
 ```bash
 # Default: reads from GCP_PROJECT_ID to build Artifact Registry path
 # Override with IMAGE env var:
-IMAGE=us-central1-docker.pkg.dev/my-project/thenightops/nightops-agent:v2 \
+IMAGE=us-central1-docker.pkg.dev/my-project/nightops/nightops-agent:v2 \
   ./scripts/generate-manifests.sh
 ```
 
@@ -136,7 +136,7 @@ export GCP_PROJECT_ID=your-project-id
 
 This creates:
 - GKE cluster with Workload Identity enabled
-- GCP service account (`thenightops-agent`) with required IAM roles
+- GCP service account (`nightops-agent`) with required IAM roles
 - Kubernetes service account bound via Workload Identity
 - Artifact Registry for container images
 - `nightops` namespace
@@ -153,7 +153,7 @@ vi config/.env  # fill in your API keys
 
 ```bash
 export REGION=us-central1
-export IMAGE="${REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/thenightops/nightops-agent:latest"
+export IMAGE="${REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/nightops/nightops-agent:latest"
 
 docker build -t "$IMAGE" .
 docker push "$IMAGE"
@@ -327,7 +327,7 @@ In GKE, expose via an Ingress or use `kubectl port-forward` for testing.
 
 ## IAM Roles Reference
 
-The `thenightops-agent` GCP service account requires:
+The `nightops-agent` GCP service account requires:
 
 | Role | Purpose |
 |------|---------|
@@ -391,7 +391,7 @@ scripts/
 **Pods stuck in ImagePullBackOff**
 ```bash
 # Check if image exists in registry
-gcloud artifacts docker images list ${REGION}-docker.pkg.dev/${PROJECT_ID}/thenightops
+gcloud artifacts docker images list ${REGION}-docker.pkg.dev/${PROJECT_ID}/nightops
 
 # Check pod events
 kubectl describe pod -l app.kubernetes.io/name=nightops-agent -n nightops

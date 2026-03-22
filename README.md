@@ -1,16 +1,17 @@
-# TheNightOps
+# THE NightOps 🌙
 
-### Your Autonomous SRE Agent for the Incidents That Don't Wait Until Morning
+### *Triage. Heal. Evolve.* — Your Autonomous SRE Agent for the Incidents That Don't Wait Until Morning
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![Google ADK](https://img.shields.io/badge/Google-ADK-4285F4.svg)](https://google.github.io/adk-python/)
 [![MCP](https://img.shields.io/badge/MCP-Remote-green.svg)](https://modelcontextprotocol.io/)
 [![Gemini](https://img.shields.io/badge/Gemini-3.1--Pro--Preview-4285F4.svg)](https://ai.google.dev/)
+[![Beta](https://img.shields.io/badge/status-🧪_beta-blueviolet)](https://github.com/nomadicmehul/thenightops/)
 
 ---
 
-**TheNightOps** is an autonomous SRE agent built on [Google Agent Development Kit (ADK)](https://google.github.io/adk-python/) and powered by **Gemini 3.1 Pro Preview**. It connects to your Kubernetes clusters and Google Cloud infrastructure through [MCP (Model Context Protocol)](https://modelcontextprotocol.io/) servers — including **official Google Cloud MCP** for GKE and Cloud Logging. When an incident fires, it doesn't just notify — it **investigates, correlates, diagnoses, drafts an RCA, and recommends remediation**, all before your on-call engineer finishes reading the alert.
+**THE NightOps** (**T**riage. **H**eal. **E**volve.) is an autonomous SRE agent built on [Google Agent Development Kit (ADK)](https://google.github.io/adk-python/) and powered by **Gemini 3.1 Pro Preview**. It connects to your Kubernetes clusters and Google Cloud infrastructure through [MCP (Model Context Protocol)](https://modelcontextprotocol.io/) servers — including **official Google Cloud MCP** for GKE and Cloud Logging. When an incident fires, it doesn't just notify — it **investigates, correlates, diagnoses, drafts an RCA, and recommends remediation**, all before your on-call engineer finishes reading the alert.
 
 ---
 
@@ -64,13 +65,13 @@ The traditional answer has been more tooling, more dashboards, more alerting rul
 
 **The real answer is an AI-powered SRE agent that can reason across all of this — and act.**
 
-**TheNightOps changes this.** It reduces Mean Time to Resolution from 45+ minutes to under 5 minutes — autonomously.
+**THE NightOps changes this.** It reduces Mean Time to Resolution from 45+ minutes to under 5 minutes — autonomously.
 
 ---
 
 ## Architecture
 
-TheNightOps supports **two operating modes** — choose based on your environment:
+THE NightOps supports **two operating modes** — choose based on your environment:
 
 ### Simple Mode (Recommended)
 
@@ -78,7 +79,7 @@ Single-agent architecture using `kubectl` tools directly. Reliable, works with a
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│          TheNightOps Simple Agent (ADK + Gemini)              │
+│          THE NightOps Simple Agent (ADK + Gemini)              │
 │                                                              │
 │  ┌─────────────────────────────────────────────────────────┐ │
 │  │              Single SRE Investigator Agent                │ │
@@ -106,7 +107,7 @@ Multi-agent architecture using [MCP (Model Context Protocol)](https://modelconte
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
-│                  TheNightOps Agent (ADK + Gemini)                 │
+│                  THE NightOps Agent (ADK + Gemini)                 │
 │                                                                  │
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────┐    │
 │  │   Log    │  │ Deploy   │  │ Runbook  │  │ Communication│    │
@@ -286,7 +287,7 @@ nightops verify
 
 ### Simple Mode (Recommended First Test)
 
-The simplest and most reliable way to try TheNightOps. Uses `kubectl` subprocess calls instead of MCP — works with **any** Kubernetes cluster, no GCP MCP setup needed.
+The simplest and most reliable way to try THE NightOps. Uses `kubectl` subprocess calls instead of MCP — works with **any** Kubernetes cluster, no GCP MCP setup needed.
 
 ```bash
 # Investigate a specific incident
@@ -330,7 +331,7 @@ bash scripts/run-local.sh --local
 
 ## MCP Servers
 
-TheNightOps supports two MCP modes:
+THE NightOps supports two MCP modes:
 
 ### GCP Mode (Default) — Official Google Cloud MCP
 
@@ -365,7 +366,7 @@ Self-hosted MCP servers with SSE transport. No GCP project needed.
 
 ## Investigation Dashboard
 
-TheNightOps includes a **real-time investigation dashboard** — a web UI that streams agent activity as it happens, so you (and your conference audience) can watch the investigation unfold live.
+THE NightOps includes a **real-time investigation dashboard** — a web UI that streams agent activity as it happens, so you (and your conference audience) can watch the investigation unfold live.
 
 ```bash
 # Launch the dashboard
@@ -389,7 +390,7 @@ The dashboard is built on FastAPI + WebSocket and requires no external dependenc
 
 ## Agent Architecture
 
-TheNightOps uses Google ADK's multi-agent orchestration to coordinate parallel investigation with 5 specialist sub-agents:
+THE NightOps uses Google ADK's multi-agent orchestration to coordinate parallel investigation with 5 specialist sub-agents:
 
 - **Root Orchestrator** — Receives incidents, coordinates investigation, synthesises findings, and recommends remediation
 - **Log Analyst** — Cloud Logging pattern analysis, anomaly detection, and trace correlation
@@ -444,7 +445,7 @@ Remediation Policy Engine checks action level:
 
 ## Demo Scenarios
 
-Each scenario simulates a real-world incident pattern. Deploy to GKE, trigger the scenario, and watch TheNightOps investigate autonomously.
+Each scenario simulates a real-world incident pattern. Deploy to GKE, trigger the scenario, and watch THE NightOps investigate autonomously.
 
 ### Scenario 1: Memory Leak → OOMKill Cascade
 
@@ -453,7 +454,7 @@ Each scenario simulates a real-world incident pattern. Deploy to GKE, trigger th
 | | |
 |---|---|
 | **What happens** | A deployment introduces a memory leak. Pods gradually consume memory until they hit the 256Mi limit and are OOMKilled. Pods restart but immediately begin leaking again, creating CrashLoopBackOff. Downstream services start failing. |
-| **What TheNightOps does** | Detects OOMKilled events via Kubernetes MCP → correlates with recent deployment version change → identifies memory trending upward → finds restart count increasing → drafts RCA pointing to the new image version → recommends rollback |
+| **What THE NightOps does** | Detects OOMKilled events via Kubernetes MCP → correlates with recent deployment version change → identifies memory trending upward → finds restart count increasing → drafts RCA pointing to the new image version → recommends rollback |
 | **Trigger** | `nightops demo trigger -s memory-leak` |
 
 ### Scenario 2: CPU Spike from Bad Query
@@ -463,7 +464,7 @@ Each scenario simulates a real-world incident pattern. Deploy to GKE, trigger th
 | | |
 |---|---|
 | **What happens** | A specific API endpoint (`/api/reports/generate`) consumes excessive CPU due to an unoptimised computation. CPU throttling causes high latency on ALL endpoints, not just the problematic one. Timeouts cascade. |
-| **What TheNightOps does** | Identifies CPU at limits via Kubernetes MCP → finds error logs pointing to specific endpoint via Cloud Logging MCP → correlates with recent deployment change → recommends disabling the endpoint and increasing CPU limits |
+| **What THE NightOps does** | Identifies CPU at limits via Kubernetes MCP → finds error logs pointing to specific endpoint via Cloud Logging MCP → correlates with recent deployment change → recommends disabling the endpoint and increasing CPU limits |
 | **Trigger** | `nightops demo trigger -s cpu-spike` |
 
 ### Scenario 3: Database Connection Pool Exhaustion
@@ -473,7 +474,7 @@ Each scenario simulates a real-world incident pattern. Deploy to GKE, trigger th
 | | |
 |---|---|
 | **What happens** | Database connection pool is exhausted. The `/api/users` endpoint hangs waiting for a connection, returning 504s. Services depending on user data start failing — the classic cascading failure. |
-| **What TheNightOps does** | Maps the failure cascade across services → identifies database timeout as root → traces back to connection pool config change → recommends pod restart to reset pool + circuit breaker implementation |
+| **What THE NightOps does** | Maps the failure cascade across services → identifies database timeout as root → traces back to connection pool config change → recommends pod restart to reset pool + circuit breaker implementation |
 | **Trigger** | `nightops demo trigger -s cascading-failure` |
 
 ### Scenario 4: Config Drift Causing 5xx Errors
@@ -483,7 +484,7 @@ Each scenario simulates a real-world incident pattern. Deploy to GKE, trigger th
 | | |
 |---|---|
 | **What happens** | A misconfigured environment variable causes 50% of requests to `/api/data` to fail with 500 errors. The error rate looks like "normal noise" for 15 minutes before crossing the alert threshold. |
-| **What TheNightOps does** | Detects error rate spike via Cloud Logging MCP → correlates timing with recent environment variable change via Kubernetes MCP → identifies exact config key that changed → recommends reverting the config |
+| **What THE NightOps does** | Detects error rate spike via Cloud Logging MCP → correlates timing with recent environment variable change via Kubernetes MCP → identifies exact config key that changed → recommends reverting the config |
 | **Trigger** | `nightops demo trigger -s config-drift` |
 
 ### Scenario 5: Aggressive OOMKill
@@ -493,7 +494,7 @@ Each scenario simulates a real-world incident pattern. Deploy to GKE, trigger th
 | | |
 |---|---|
 | **What happens** | Aggressive memory allocation consumes available memory within seconds. Kubernetes OOMKills the pod immediately. Pod restarts, allocates again, OOMKilled again — instant CrashLoopBackOff. Unlike the slow memory leak, this one is visible to everyone within 30 seconds. |
-| **What TheNightOps does** | Instantly detects OOMKill event via Kubernetes MCP → checks memory limits vs actual usage → identifies the allocation pattern in logs → correlates with deployment change → recommends immediate rollback with higher memory limits |
+| **What THE NightOps does** | Instantly detects OOMKill event via Kubernetes MCP → checks memory limits vs actual usage → identifies the allocation pattern in logs → correlates with deployment change → recommends immediate rollback with higher memory limits |
 | **Trigger** | `nightops demo trigger -s oom-kill` |
 
 ---
@@ -555,7 +556,7 @@ mcp_servers:
 
 ## Key Metrics
 
-| Metric | Before TheNightOps | After TheNightOps |
+| Metric | Before THE NightOps | After THE NightOps |
 |--------|-------------------|-------------------|
 | MTTR (investigation phase) | 45+ minutes | < 5 minutes |
 | RCA consistency | Varies by engineer/time of day | Standardised every time |

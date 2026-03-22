@@ -18,7 +18,7 @@ from rich.panel import Panel
 from rich.prompt import Confirm, Prompt
 from rich.table import Table
 
-from thenightops.core.logging import print_banner
+from nightops.core.logging import print_banner
 
 console = Console()
 

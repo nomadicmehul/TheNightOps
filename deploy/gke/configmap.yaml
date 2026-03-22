@@ -4,7 +4,7 @@ metadata:
   name: nightops-config
   namespace: nightops
   labels:
-    app.kubernetes.io/part-of: thenightops
+    app.kubernetes.io/part-of: nightops
 data:
   nightops.yaml: |
     agent:

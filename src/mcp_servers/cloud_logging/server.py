@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 # ── MCP Server Definition ──────────────────────────────────────────
 
-server = Server("thenightops-cloud-logging")
+server = Server("nightops-cloud-logging")
 
 
 def _build_client(project_id: str = "") -> cloud_logging.Client:

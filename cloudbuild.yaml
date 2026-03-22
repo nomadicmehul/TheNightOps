@@ -19,7 +19,7 @@ substitutions:
   _CLUSTER_NAME: ""
   _CLUSTER_LOCATION: "us-central1-b"
   _REGION: "us-central1"
-  _REPO: "thenightops"
+  _REPO: "nightops"
 
 steps:
   # Step 1: Create Artifact Registry repo (idempotent)

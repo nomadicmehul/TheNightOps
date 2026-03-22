@@ -22,7 +22,7 @@ from starlette.routing import Mount, Route
 
 logger = logging.getLogger(__name__)
 
-server = Server("thenightops-kubernetes")
+server = Server("nightops-kubernetes")
 
 # ── Kubernetes Client Setup ─────────────────────────────────────────
 

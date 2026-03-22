@@ -7,7 +7,7 @@ metadata:
   namespace: nightops
   labels:
     app.kubernetes.io/name: nightops-dashboard
-    app.kubernetes.io/part-of: thenightops
+    app.kubernetes.io/part-of: nightops
     app.kubernetes.io/component: dashboard
 spec:
   replicas: 1
@@ -18,13 +18,13 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: nightops-dashboard
-        app.kubernetes.io/part-of: thenightops
+        app.kubernetes.io/part-of: nightops
         app.kubernetes.io/component: dashboard
     spec:
       containers:
         - name: dashboard
           image: AGENT_IMAGE
-          command: ["python", "-m", "thenightops.cli", "dashboard", "--no-open", "--port", "8888"]
+          command: ["python", "-m", "nightops.cli", "dashboard", "--no-open", "--port", "8888"]
           ports:
             - name: http
               containerPort: 8888
@@ -52,7 +52,7 @@ metadata:
   namespace: nightops
   labels:
     app.kubernetes.io/name: nightops-dashboard
-    app.kubernetes.io/part-of: thenightops
+    app.kubernetes.io/part-of: nightops
 spec:
   selector:
     app.kubernetes.io/name: nightops-dashboard

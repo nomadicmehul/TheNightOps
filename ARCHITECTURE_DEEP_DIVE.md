@@ -60,7 +60,7 @@ There are **two operational modes**:
                                       ▼
                     ┌─────────────────────────────────────┐
                     │      Root Orchestrator Agent         │
-                    │  (thenightops)                       │
+                    │  (nightops)                       │
                     │  model: gemini-3.1-pro-preview       │
                     │  file: root_orchestrator.py          │
                     │                                      │
@@ -155,7 +155,7 @@ Root Orchestrator (Gemini) → "Now I have log findings, let me check deployment
                                       ▼
                     ┌─────────────────────────────────────┐
                     │     Simple Agent                     │
-                    │  (thenightops_simple)                │
+                    │  (nightops_simple)                │
                     │  model: gemini-3.1-pro-preview       │
                     │  file: simple_agent.py               │
                     │                                      │
@@ -214,7 +214,7 @@ Root Orchestrator (Gemini) → "Now I have log findings, let me check deployment
 from google.adk.agents import Agent
 
 agent = Agent(
-    name="thenightops",               # Agent identifier
+    name="nightops",               # Agent identifier
     model="gemini-3.1-pro-preview",   # Which Gemini model to use
     instruction="You are an SRE...",  # System prompt sent to Gemini
     tools=[...],                       # Tools Gemini is allowed to call
@@ -227,13 +227,13 @@ from google.adk.sessions import InMemorySessionService
 
 session_service = InMemorySessionService()
 session = await session_service.create_session(
-    app_name="thenightops",
+    app_name="nightops",
     user_id="nightops-system",
 )
 
 runner = Runner(
     agent=agent,
-    app_name="thenightops",
+    app_name="nightops",
     session_service=session_service,
 )
 
@@ -449,7 +449,7 @@ STEP 3: Agent Creation (root_orchestrator.py:386-453)
     ↓
     # Create root agent
     root_agent = Agent(
-        name="thenightops",
+        name="nightops",
         model=model,
         instruction=_build_root_instruction(use_gcp),
         sub_agents=[log_analyst, deployment_correlator, runbook_retriever,
@@ -649,7 +649,7 @@ STEP 3: Agent Creation (simple_agent.py:292-329)
     ]
     ↓
     agent = Agent(
-        name="thenightops_simple",
+        name="nightops_simple",
         model=config.agent.model,
         instruction=_SIMPLE_AGENT_INSTRUCTION,
         tools=tools,
@@ -672,7 +672,7 @@ STEP 4: Runner Execution (simple_agent.py:349-410)
 ### Part 3: Call-by-Call Gemini Sequence (5-10 API calls)
 
 ```
-CALL 1 → Gemini (as thenightops_simple)
+CALL 1 → Gemini (as nightops_simple)
   Input:  instruction + "INCIDENT RECEIVED:\n\nPod crashlooping..."
   Output: "Let me start by checking namespaces and pods"
   → function_call: kubectl_get_namespaces()
@@ -680,7 +680,7 @@ CALL 1 → Gemini (as thenightops_simple)
   ADK executes: subprocess.run(["kubectl", "get", "namespaces"])
   Returns: namespace list to Gemini
 
-CALL 2 → Gemini (as thenightops_simple)
+CALL 2 → Gemini (as nightops_simple)
   Input:  previous + namespace list
   Output: "Checking pods in default namespace"
   → function_call: kubectl_get_pods("default")
@@ -688,7 +688,7 @@ CALL 2 → Gemini (as thenightops_simple)
   ADK executes: subprocess.run(["kubectl", "get", "pods", "-n", "default", "-o", "wide", "--show-labels"])
   Returns: pod table showing CrashLoopBackOff
 
-CALL 3 → Gemini (as thenightops_simple)
+CALL 3 → Gemini (as nightops_simple)
   Input:  previous + pod status
   Output: "demo-app is CrashLoopBackOff with 15 restarts. Let me check events"
   → function_call: kubectl_get_events("default")
@@ -696,7 +696,7 @@ CALL 3 → Gemini (as thenightops_simple)
   ADK executes: subprocess.run(["kubectl", "get", "events", "-n", "default", "--sort-by", ".lastTimestamp"])
   Returns: events showing OOMKilled
 
-CALL 4 → Gemini (as thenightops_simple)
+CALL 4 → Gemini (as nightops_simple)
   Input:  previous + events
   Output: "OOMKilled detected. Getting pod details"
   → function_call: kubectl_describe_pod("demo-app")
@@ -704,7 +704,7 @@ CALL 4 → Gemini (as thenightops_simple)
   ADK executes: subprocess.run(["kubectl", "describe", "pod", "demo-app", "-n", "default"])
   Returns: full pod description with memory limit 128Mi
 
-CALL 5 → Gemini (as thenightops_simple)
+CALL 5 → Gemini (as nightops_simple)
   Input:  previous + pod description
   Output: "Checking previous container logs"
   → function_call: kubectl_get_pod_logs("demo-app", previous=True)
@@ -712,7 +712,7 @@ CALL 5 → Gemini (as thenightops_simple)
   ADK executes: subprocess.run(["kubectl", "logs", "demo-app", "-n", "default", "--tail", "100", "--previous"])
   Returns: log showing memory allocation before crash
 
-CALL 6 → Gemini (as thenightops_simple)
+CALL 6 → Gemini (as nightops_simple)
   Input:  previous + logs
   Output: "Checking resource limits in YAML"
   → function_call: kubectl_get_resource_yaml("pod", "demo-app")
@@ -720,7 +720,7 @@ CALL 6 → Gemini (as thenightops_simple)
   ADK executes: subprocess.run(["kubectl", "get", "pod", "demo-app", "-n", "default", "-o", "yaml"])
   Returns: YAML showing limits.memory: 128Mi
 
-CALL 7 → Gemini (as thenightops_simple)          ← FINAL
+CALL 7 → Gemini (as nightops_simple)          ← FINAL
   Input:  ALL previous context + all tool results
   Output:
     "**Incident Summary**: Pod demo-app OOMKilled repeatedly
@@ -835,8 +835,8 @@ runner.run_async() is a LOOP — it calls Gemini MULTIPLE times:
 
 | File | Agent Name | Role | Has Tools? | Has Sub-Agents? |
 |------|-----------|------|-----------|----------------|
-| `src/agents/root_orchestrator.py` | `thenightops` | Coordinates investigation | Yes (MCP) | Yes (5) |
-| `src/agents/simple_agent.py` | `thenightops_simple` | Single-agent investigator | Yes (kubectl) | No |
+| `src/agents/root_orchestrator.py` | `nightops` | Coordinates investigation | Yes (MCP) | Yes (5) |
+| `src/agents/simple_agent.py` | `nightops_simple` | Single-agent investigator | Yes (kubectl) | No |
 | `src/agents/log_analyst.py` | `log_analyst` | Cloud log analysis | Yes (MCP) | No |
 | `src/agents/deployment_correlator.py` | `deployment_correlator` | K8s deployment/pod checks | Yes (MCP) | No |
 | `src/agents/runbook_retriever.py` | `runbook_retriever` | Historical patterns | Yes (MCP) | No |

@@ -36,10 +36,10 @@ echo "  ✓ NightOps namespace removed"
 REGION="${GCP_REGION:-us-central1}"
 echo "→ Removing container images from Artifact Registry..."
 gcloud artifacts docker images delete \
-    "${REGION}-docker.pkg.dev/${PROJECT_ID}/thenightops/nightops-agent:latest" \
+    "${REGION}-docker.pkg.dev/${PROJECT_ID}/nightops/nightops-agent:latest" \
     --quiet 2>/dev/null || true
 gcloud artifacts docker images delete \
-    "${REGION}-docker.pkg.dev/${PROJECT_ID}/thenightops/nightops-demo-api:latest" \
+    "${REGION}-docker.pkg.dev/${PROJECT_ID}/nightops/nightops-demo-api:latest" \
     --quiet 2>/dev/null || true
 echo "  ✓ Images cleaned up"
 
