@@ -350,19 +350,15 @@ class NightOpsConfig(BaseSettings):
         with open(path) as f:
             raw = f.read()
 
-        # Substitute environment variables (${VAR_NAME} syntax)
         for key, value in os.environ.items():
             raw = raw.replace(f"${{{key}}}", value)
 
-        # Replace any remaining unresolved ${VAR} references with empty string
         raw = re.sub(r"\$\{[A-Za-z_][A-Za-z0-9_]*\}", "", raw)
 
         data = yaml.safe_load(raw)
 
-        # Handle nested mcp_servers key if present in YAML
         if "mcp_servers" in data:
             mcp = data.pop("mcp_servers")
-            # Map YAML key cloud_logging → cloud_logging_custom to avoid conflict
             if "cloud_logging" in mcp:
                 mcp["cloud_logging_custom"] = mcp.pop("cloud_logging")
             data.update(mcp)
@@ -406,13 +402,11 @@ class NightOpsConfig(BaseSettings):
             if Path(default_path).exists():
                 return cls.from_yaml(default_path)
 
-        # Fall back to packaged defaults (so consuming projects don't need to ship config/)
         try:
             packaged = pkg_files("nightops") / "config" / "nightops.yaml"
             if packaged.is_file():
                 return cls.from_yaml_text(packaged.read_text())
         except Exception:
-            # Best-effort fallback only; remaining logic uses env vars/defaults.
             pass
 
         # Fall back to environment variables and defaults

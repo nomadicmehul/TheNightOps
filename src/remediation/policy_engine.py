@@ -142,8 +142,6 @@ class PolicyEngine:
         """Load policies from a YAML file, merging with defaults."""
         policy_file = Path(path)
         if not policy_file.exists():
-            # If the consuming project doesn't ship the config file, try
-            # loading it from the packaged defaults.
             try:
                 packaged = pkg_files("nightops") / path
                 if packaged.is_file():
