@@ -145,6 +145,10 @@ Multi-agent architecture using [MCP (Model Context Protocol)](https://modelconte
 | **Dashboard** | Full support | Full support |
 | **Remediation** | Investigation + RCA only (read-only) | Investigation + auto-remediation |
 
+### Amazon EKS (AWS)
+
+THE NightOps works on **Amazon EKS** using **Simple mode** (`--simple`) and a standard **kubeconfig** from `aws eks update-kubeconfig`. No code changes are required. For IAM, networking, YAML tweaks, and commands, see **[docs/AWS_EKS.md](docs/AWS_EKS.md)**.
+
 ### Project Structure
 
 ```
