@@ -333,7 +333,7 @@ async def _notify_stakeholders(
     blocks = [
         {
             "type": "header",
-            "text": {"type": "plain_text", "text": f"⚡ Service Status Update"},
+            "text": {"type": "plain_text", "text": "⚡ Service Status Update"},
         },
         {
             "type": "section",

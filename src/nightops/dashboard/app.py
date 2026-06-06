@@ -3,20 +3,19 @@ TheNightOps Real-time Investigation Dashboard
 FastAPI + WebSocket + Jinja2 application for monitoring agent investigations
 """
 import json
-import asyncio
-from datetime import datetime, timezone
-from typing import Optional, List, Dict, Any, Set
-from dataclasses import dataclass, field, asdict
-from enum import Enum
 import uuid
-
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse
-from fastapi.middleware.cors import CORSMiddleware
-from jinja2 import Environment, FileSystemLoader
-import uvicorn
+from dataclasses import asdict, dataclass, field
+from datetime import UTC, datetime
+from enum import Enum
 from pathlib import Path
+from typing import Any
+
+import uvicorn
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from jinja2 import Environment, FileSystemLoader
 
 
 class InvestigationStatus(str, Enum):
@@ -52,8 +51,8 @@ class TimelineEvent:
     agent: str
     event_type: str
     description: str
-    phase: Optional[int] = None
-    tool_name: Optional[str] = None
+    phase: int | None = None
+    tool_name: str | None = None
 
     def to_dict(self):
         return asdict(self)
@@ -78,7 +77,7 @@ class AgentAction:
     agent_name: str
     action: str
     timestamp: str
-    result: Optional[str] = None
+    result: str | None = None
 
     def to_dict(self):
         return asdict(self)
@@ -92,12 +91,12 @@ class Investigation:
     status: InvestigationStatus
     severity: SeverityLevel
     started_at: str
-    completed_at: Optional[str] = None
+    completed_at: str | None = None
     current_phase: int = 1
-    timeline: List[TimelineEvent] = field(default_factory=list)
-    findings: List[Finding] = field(default_factory=list)
-    agent_actions: List[AgentAction] = field(default_factory=list)
-    rca_summary: Optional[str] = None
+    timeline: list[TimelineEvent] = field(default_factory=list)
+    findings: list[Finding] = field(default_factory=list)
+    agent_actions: list[AgentAction] = field(default_factory=list)
+    rca_summary: str | None = None
 
     def to_dict(self):
         return {
@@ -119,7 +118,7 @@ class InvestigationStore:
     """In-memory store for investigations"""
 
     def __init__(self):
-        self.investigations: Dict[str, Investigation] = {}
+        self.investigations: dict[str, Investigation] = {}
 
     def create_investigation(
         self,
@@ -132,16 +131,16 @@ class InvestigationStore:
             incident_description=incident_description,
             status=InvestigationStatus.PENDING,
             severity=SeverityLevel(severity),
-            started_at=datetime.now(timezone.utc).isoformat(),
+            started_at=datetime.now(UTC).isoformat(),
         )
         self.investigations[investigation.id] = investigation
         return investigation
 
-    def get_investigation(self, investigation_id: str) -> Optional[Investigation]:
+    def get_investigation(self, investigation_id: str) -> Investigation | None:
         """Get investigation by ID"""
         return self.investigations.get(investigation_id)
 
-    def list_investigations(self) -> List[Investigation]:
+    def list_investigations(self) -> list[Investigation]:
         """List all investigations sorted by start time"""
         return sorted(
             self.investigations.values(),
@@ -153,13 +152,13 @@ class InvestigationStore:
         self,
         investigation_id: str,
         status: InvestigationStatus
-    ) -> Optional[Investigation]:
+    ) -> Investigation | None:
         """Update investigation status"""
         investigation = self.get_investigation(investigation_id)
         if investigation:
             investigation.status = status
             if status == InvestigationStatus.COMPLETED:
-                investigation.completed_at = datetime.now(timezone.utc).isoformat()
+                investigation.completed_at = datetime.now(UTC).isoformat()
         return investigation
 
     def add_timeline_event(
@@ -168,14 +167,14 @@ class InvestigationStore:
         agent: str,
         event_type: str,
         description: str,
-        phase: Optional[int] = None,
-        tool_name: Optional[str] = None,
-    ) -> Optional[TimelineEvent]:
+        phase: int | None = None,
+        tool_name: str | None = None,
+    ) -> TimelineEvent | None:
         """Add event to investigation timeline"""
         investigation = self.get_investigation(investigation_id)
         if investigation:
             event = TimelineEvent(
-                timestamp=datetime.now(timezone.utc).isoformat(),
+                timestamp=datetime.now(UTC).isoformat(),
                 agent=agent,
                 event_type=event_type,
                 description=description,
@@ -192,7 +191,7 @@ class InvestigationStore:
         severity: str,
         source_agent: str,
         description: str,
-    ) -> Optional[Finding]:
+    ) -> Finding | None:
         """Add a finding to the investigation"""
         investigation = self.get_investigation(investigation_id)
         if investigation:
@@ -201,7 +200,7 @@ class InvestigationStore:
                 severity=severity,
                 source_agent=source_agent,
                 description=description,
-                timestamp=datetime.now(timezone.utc).isoformat(),
+                timestamp=datetime.now(UTC).isoformat(),
             )
             investigation.findings.append(finding)
             return finding
@@ -212,15 +211,15 @@ class InvestigationStore:
         investigation_id: str,
         agent_name: str,
         action: str,
-        result: Optional[str] = None,
-    ) -> Optional[AgentAction]:
+        result: str | None = None,
+    ) -> AgentAction | None:
         """Record an agent action"""
         investigation = self.get_investigation(investigation_id)
         if investigation:
             agent_action = AgentAction(
                 agent_name=agent_name,
                 action=action,
-                timestamp=datetime.now(timezone.utc).isoformat(),
+                timestamp=datetime.now(UTC).isoformat(),
                 result=result,
             )
             investigation.agent_actions.append(agent_action)
@@ -231,7 +230,7 @@ class InvestigationStore:
         self,
         investigation_id: str,
         phase: int
-    ) -> Optional[Investigation]:
+    ) -> Investigation | None:
         """Update investigation phase"""
         investigation = self.get_investigation(investigation_id)
         if investigation:
@@ -242,7 +241,7 @@ class InvestigationStore:
         self,
         investigation_id: str,
         summary: str
-    ) -> Optional[Investigation]:
+    ) -> Investigation | None:
         """Set the RCA summary"""
         investigation = self.get_investigation(investigation_id)
         if investigation:
@@ -254,7 +253,7 @@ class ConnectionManager:
     """Manage WebSocket connections and broadcasting"""
 
     def __init__(self):
-        self.active_connections: Set[WebSocket] = set()
+        self.active_connections: set[WebSocket] = set()
 
     async def connect(self, websocket: WebSocket):
         """Register a new WebSocket connection"""
@@ -265,7 +264,7 @@ class ConnectionManager:
         """Remove a WebSocket connection"""
         self.active_connections.discard(websocket)
 
-    async def broadcast(self, event_data: Dict[str, Any]):
+    async def broadcast(self, event_data: dict[str, Any]):
         """Broadcast event to all connected clients"""
         if not self.active_connections:
             return
@@ -370,13 +369,13 @@ def create_app(port: int = 8888) -> FastAPI:
             "investigation_id": investigation.id,
             "incident_description": incident_description,
             "severity": severity,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         })
 
         return investigation.to_dict()
 
     @app.post("/api/events")
-    async def receive_event(event: Dict[str, Any]):
+    async def receive_event(event: dict[str, Any]):
         """Receive investigation events from the agent and broadcast to dashboard clients.
 
         This is the REST bridge that allows the agent container to push
@@ -384,7 +383,7 @@ def create_app(port: int = 8888) -> FastAPI:
         """
         investigation_id = event.get("investigation_id")
         event_type = event.get("type", "")
-        event["timestamp"] = datetime.now(timezone.utc).isoformat()
+        event["timestamp"] = datetime.now(UTC).isoformat()
 
         if investigation_id:
             if event_type == EventType.TOOL_CALLED.value:
@@ -548,7 +547,7 @@ def create_app(port: int = 8888) -> FastAPI:
                     )
 
                 # Broadcast event to all other clients
-                event["timestamp"] = datetime.now(timezone.utc).isoformat()
+                event["timestamp"] = datetime.now(UTC).isoformat()
                 await app.connection_manager.broadcast(event)
 
         except WebSocketDisconnect:

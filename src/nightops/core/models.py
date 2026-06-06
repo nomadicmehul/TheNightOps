@@ -3,16 +3,16 @@
 from __future__ import annotations
 
 import hashlib
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
 
 def _utcnow() -> datetime:
     """Return the current UTC datetime (timezone-aware)."""
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class Severity(str, Enum):
@@ -85,7 +85,7 @@ class PodInfo(BaseModel):
     containers: list[ContainerInfo] = Field(default_factory=list)
     events: list[KubeEvent] = Field(default_factory=list)
     labels: dict[str, str] = Field(default_factory=dict)
-    created_at: Optional[datetime] = None
+    created_at: datetime | None = None
 
 
 class DeploymentInfo(BaseModel):
@@ -98,7 +98,7 @@ class DeploymentInfo(BaseModel):
     updated_replicas: int
     available_replicas: int
     image: str = ""
-    last_updated: Optional[datetime] = None
+    last_updated: datetime | None = None
     conditions: list[dict[str, str]] = Field(default_factory=list)
 
 
@@ -117,9 +117,9 @@ class Incident(BaseModel):
     fingerprint: str = ""
     source: str = "manual"  # manual, webhook, event_watcher, anomaly_detector
     created_at: datetime = Field(default_factory=_utcnow)
-    updated_at: Optional[datetime] = None
-    acknowledged_at: Optional[datetime] = None
-    resolved_at: Optional[datetime] = None
+    updated_at: datetime | None = None
+    acknowledged_at: datetime | None = None
+    resolved_at: datetime | None = None
     alert_details: dict[str, Any] = Field(default_factory=dict)
     assignee: str = ""
 
@@ -135,7 +135,7 @@ class Investigation(BaseModel):
     incident: Incident
     status: IncidentStatus = IncidentStatus.INVESTIGATING
     started_at: datetime = Field(default_factory=_utcnow)
-    completed_at: Optional[datetime] = None
+    completed_at: datetime | None = None
     findings: list[Finding] = Field(default_factory=list)
     timeline: list[TimelineEntry] = Field(default_factory=list)
     root_cause: str = ""
@@ -157,7 +157,7 @@ class Finding(BaseModel):
     description: str
     evidence: list[str] = Field(default_factory=list)
     confidence: float = 0.0  # 0.0 to 1.0
-    timestamp: Optional[datetime] = None
+    timestamp: datetime | None = None
 
 
 class TimelineEntry(BaseModel):
@@ -180,8 +180,8 @@ class RemediationAction(BaseModel):
     target: str = ""  # e.g. "deployment/demo-api" or "pod/demo-api-xyz"
     namespace: str = ""
     auto_approved: bool = False
-    approved: Optional[bool] = None
-    executed_at: Optional[datetime] = None
+    approved: bool | None = None
+    executed_at: datetime | None = None
     result: str = ""
     confidence: float = 0.0
 
@@ -213,8 +213,8 @@ class WebhookAlert(BaseModel):
     description: str = ""
     labels: dict[str, str] = Field(default_factory=dict)
     annotations: dict[str, str] = Field(default_factory=dict)
-    starts_at: Optional[datetime] = None
-    ends_at: Optional[datetime] = None
+    starts_at: datetime | None = None
+    ends_at: datetime | None = None
     generator_url: str = ""
     fingerprint: str = ""
     raw_payload: dict[str, Any] = Field(default_factory=dict)
@@ -233,7 +233,7 @@ class AlertGroup(BaseModel):
     first_seen: datetime = Field(default_factory=_utcnow)
     last_seen: datetime = Field(default_factory=_utcnow)
     count: int = 1
-    incident_id: Optional[str] = None
+    incident_id: str | None = None
 
 
 # ── Intelligence / Memory Models ──────────────────────────────────
@@ -256,7 +256,7 @@ class IncidentRecord(BaseModel):
     findings_summary: str = ""
     action_items: list[str] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=_utcnow)
-    resolved_at: Optional[datetime] = None
+    resolved_at: datetime | None = None
     embedding_text: str = ""
 
     def build_embedding_text(self) -> str:
@@ -297,7 +297,7 @@ class InvestigationMetrics(BaseModel):
     tools_called: int = 0
     human_interventions: int = 0
     confidence_score: float = 0.0
-    was_correct: Optional[bool] = None  # filled in by human review
+    was_correct: bool | None = None  # filled in by human review
     pattern_matched: bool = False
     auto_remediated: bool = False
     severity: Severity = Severity.MEDIUM
@@ -331,7 +331,7 @@ class ClusterInfo(BaseModel):
     environment: str = "production"  # production, staging, development
     criticality: str = "high"  # high, medium, low
     healthy: bool = True
-    last_checked: Optional[datetime] = None
+    last_checked: datetime | None = None
 
 
 # ── Anomaly Detection Models ──────────────────────────────────────

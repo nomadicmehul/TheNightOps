@@ -16,11 +16,11 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import yaml
 
-from nightops.core.models import RemediationAction, RemediationPolicy, Severity
+from nightops.core.models import RemediationAction
 
 logger = logging.getLogger(__name__)
 

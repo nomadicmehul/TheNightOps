@@ -7,8 +7,8 @@ and send investigation events via WebSocket.
 
 import asyncio
 import json
+
 import websockets
-from datetime import datetime
 
 
 async def send_event(ws_url: str, event: dict):

@@ -17,9 +17,7 @@ import logging
 import math
 import re
 from collections import Counter
-from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
 
 from nightops.core.config import IntelligenceConfig
 from nightops.core.models import (

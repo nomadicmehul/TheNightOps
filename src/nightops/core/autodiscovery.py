@@ -15,7 +15,6 @@ import logging
 import os
 import subprocess
 from dataclasses import dataclass, field
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 

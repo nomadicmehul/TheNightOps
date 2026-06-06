@@ -8,6 +8,7 @@ leaving legitimate (ConfigMap, Deployment, etc.) inspection untouched.
 from __future__ import annotations
 
 import pytest
+
 from nightops.agents import simple_agent
 from nightops.agents.simple_agent import (
     _is_denied_resource,

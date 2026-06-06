@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from google.cloud import logging as cloud_logging
@@ -223,7 +223,7 @@ async def _query_logs(
 ) -> list[TextContent]:
     """Query Cloud Logging and return matching entries."""
     client = _build_client(project_id)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     start = now - timedelta(hours=hours_back)
 
     time_filter = f'timestamp>="{start.isoformat()}" AND timestamp<="{now.isoformat()}"'
@@ -249,7 +249,7 @@ async def _detect_error_patterns(
 ) -> list[TextContent]:
     """Detect recurring error patterns in logs."""
     client = _build_client(project_id)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     start = now - timedelta(hours=hours_back)
 
     filter_expr = (
@@ -307,7 +307,7 @@ async def _get_log_volume_anomalies(
 ) -> list[TextContent]:
     """Detect anomalies in log volume."""
     client = _build_client(project_id)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     # Get baseline volume
     baseline_start = now - timedelta(hours=baseline_hours)
@@ -352,7 +352,7 @@ async def _correlate_logs_by_trace(
 ) -> list[TextContent]:
     """Correlate logs by trace ID across services."""
     client = _build_client(project_id)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     start = now - timedelta(hours=hours_back)
 
     filter_expr = (

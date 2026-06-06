@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Optional
+from datetime import UTC
 
 from nightops.core.models import AlertGroup, WebhookAlert
 
@@ -41,7 +41,6 @@ class AlertDeduplicator:
         self._cleanup_expired()
 
         fingerprint = alert.fingerprint or alert.compute_fingerprint()
-        now_ts = time.time()
 
         if fingerprint in self._groups:
             group = self._groups[fingerprint]
@@ -69,7 +68,7 @@ class AlertDeduplicator:
         )
         return True
 
-    def resolve(self, alert: WebhookAlert) -> Optional[AlertGroup]:
+    def resolve(self, alert: WebhookAlert) -> AlertGroup | None:
         """Mark an alert group as resolved and remove it from active tracking."""
         fingerprint = alert.fingerprint or alert.compute_fingerprint()
         group = self._groups.pop(fingerprint, None)
@@ -80,7 +79,7 @@ class AlertDeduplicator:
             )
         return group
 
-    def get_group(self, fingerprint: str) -> Optional[AlertGroup]:
+    def get_group(self, fingerprint: str) -> AlertGroup | None:
         """Get an active alert group by fingerprint."""
         return self._groups.get(fingerprint)
 
@@ -111,5 +110,5 @@ class AlertDeduplicator:
 
 
 def _utcnow():
-    from datetime import datetime, timezone
-    return datetime.now(timezone.utc)
+    from datetime import datetime
+    return datetime.now(UTC)

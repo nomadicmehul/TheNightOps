@@ -9,6 +9,7 @@ Verifies that:
 from __future__ import annotations
 
 import pytest
+
 from nightops.agents.root_orchestrator import (
     create_categorized_toolsets,
     create_root_orchestrator,

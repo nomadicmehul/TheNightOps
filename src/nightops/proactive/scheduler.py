@@ -10,10 +10,10 @@ from __future__ import annotations
 import asyncio
 import logging
 import uuid
-from datetime import datetime, timezone
-from typing import Any, Optional
+from datetime import UTC, datetime
+from typing import Any
 
-from nightops.core.config import NightOpsConfig, ProactiveConfig
+from nightops.core.config import ProactiveConfig
 from nightops.core.models import AnomalyCheck, Incident, Severity
 from nightops.ingestion.deduplication import AlertDeduplicator
 
@@ -33,10 +33,10 @@ class ProactiveScheduler:
         self.deduplicator = deduplicator
         self.on_new_incident = on_new_incident
         self._running = False
-        self._task: Optional[asyncio.Task] = None
+        self._task: asyncio.Task | None = None
         self._checks_run = 0
         self._anomalies_found = 0
-        self._last_check: Optional[datetime] = None
+        self._last_check: datetime | None = None
 
     async def start(self) -> None:
         """Start the proactive check scheduler."""
@@ -71,7 +71,7 @@ class ProactiveScheduler:
         while self._running:
             try:
                 await self._run_checks()
-                self._last_check = datetime.now(timezone.utc)
+                self._last_check = datetime.now(UTC)
                 self._checks_run += 1
             except asyncio.CancelledError:
                 break
@@ -106,8 +106,9 @@ class ProactiveScheduler:
 
     async def _handle_anomaly(self, check: AnomalyCheck) -> None:
         """Handle a detected anomaly by creating an incident."""
-        from nightops.core.models import WebhookAlert
         import hashlib
+
+        from nightops.core.models import WebhookAlert
 
         fingerprint = hashlib.sha256(
             f"proactive:{check.check_type}:{check.service}:{check.namespace}".encode()
@@ -180,7 +181,8 @@ async def _check_crashloop_pods(config: ProactiveConfig) -> AnomalyCheck:
     )
 
     try:
-        from kubernetes import client, config as k8s_config
+        from kubernetes import client
+        from kubernetes import config as k8s_config
         try:
             k8s_config.load_incluster_config()
         except k8s_config.ConfigException:
@@ -220,7 +222,8 @@ async def _check_oom_killed(config: ProactiveConfig) -> AnomalyCheck:
     )
 
     try:
-        from kubernetes import client, config as k8s_config
+        from kubernetes import client
+        from kubernetes import config as k8s_config
         try:
             k8s_config.load_incluster_config()
         except k8s_config.ConfigException:
@@ -257,7 +260,8 @@ async def _check_memory_trending(config: ProactiveConfig) -> AnomalyCheck:
     )
 
     try:
-        from kubernetes import client, config as k8s_config
+        from kubernetes import client
+        from kubernetes import config as k8s_config
         try:
             k8s_config.load_incluster_config()
         except k8s_config.ConfigException:
@@ -304,7 +308,8 @@ async def _check_deployment_zero_ready(config: ProactiveConfig) -> AnomalyCheck:
     )
 
     try:
-        from kubernetes import client, config as k8s_config
+        from kubernetes import client
+        from kubernetes import config as k8s_config
         try:
             k8s_config.load_incluster_config()
         except k8s_config.ConfigException:

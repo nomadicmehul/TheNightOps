@@ -18,10 +18,9 @@ Usage:
 
 from __future__ import annotations
 
-import asyncio
-import json
 import logging
 import subprocess
+from datetime import UTC
 from typing import Any
 
 from google.adk.agents import Agent
@@ -382,13 +381,13 @@ async def run_simple_investigation(
 
     Uses kubectl subprocess calls — no MCP dependency.
     """
+    from datetime import datetime
+
     import httpx
     from google.adk.runners import Runner
     from google.adk.sessions import InMemorySessionService
     from google.genai import types
-
-    from datetime import datetime, timezone
-    started_at = datetime.now(timezone.utc)
+    started_at = datetime.now(UTC)
     matched_ids: list[str] = []
 
     agent = create_simple_agent(config)

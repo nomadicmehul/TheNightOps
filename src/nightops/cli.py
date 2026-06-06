@@ -23,15 +23,14 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import Optional
 
 import typer
-from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
-from nightops.core.config import NightOpsConfig, SUPPORTED_MODELS
-from nightops.core.logging import console as rich_console, print_banner
+from nightops.core.config import NightOpsConfig
+from nightops.core.logging import console as rich_console
+from nightops.core.logging import print_banner
 
 app = typer.Typer(
     name="nightops",
@@ -80,8 +79,9 @@ def auto_config(
     )
 
     async def _discover():
-        from nightops.core.autodiscovery import EnvironmentDiscovery, generate_config_from_discovery
         import yaml
+
+        from nightops.core.autodiscovery import EnvironmentDiscovery, generate_config_from_discovery
 
         discovery = EnvironmentDiscovery()
         env = await discovery.discover()
@@ -186,7 +186,7 @@ def dashboard(
 @app.command()
 def metrics(
     period: int = typer.Option(30, "--period", "-p", help="Period in days"),
-    config_path: Optional[str] = typer.Option(None, "--config", "-c"),
+    config_path: str | None = typer.Option(None, "--config", "-c"),
 ) -> None:
     """Show impact metrics — MTTR, incidents handled, hours saved."""
     print_banner()
@@ -222,7 +222,7 @@ def metrics(
 
 @app.command()
 def policies(
-    config_path: Optional[str] = typer.Option(None, "--config", "-c"),
+    config_path: str | None = typer.Option(None, "--config", "-c"),
 ) -> None:
     """Show remediation policies — what's auto-approved vs requires human approval."""
     print_banner()
@@ -251,7 +251,7 @@ def policies(
     rich_console.print(table)
 
 
-def _load_config(config_path: Optional[str] = None) -> NightOpsConfig:
+def _load_config(config_path: str | None = None) -> NightOpsConfig:
     """Load configuration."""
     return NightOpsConfig.load(config_path)
 
@@ -261,7 +261,7 @@ def _load_config(config_path: Optional[str] = None) -> NightOpsConfig:
 
 @app.command()
 def verify(
-    config_path: Optional[str] = typer.Option(None, "--config", "-c", help="Config file path"),
+    config_path: str | None = typer.Option(None, "--config", "-c", help="Config file path"),
 ) -> None:
     """Verify all dependencies and configuration are set up correctly."""
     print_banner()
@@ -352,8 +352,8 @@ def verify(
 @mcp_app.command("start")
 def mcp_start(
     all_servers: bool = typer.Option(False, "--all", help="Start all MCP servers"),
-    server_name: Optional[str] = typer.Argument(None, help="Specific server to start"),
-    config_path: Optional[str] = typer.Option(None, "--config", "-c"),
+    server_name: str | None = typer.Argument(None, help="Specific server to start"),
+    config_path: str | None = typer.Option(None, "--config", "-c"),
 ) -> None:
     """Start MCP servers."""
     config = _load_config(config_path)
@@ -437,14 +437,14 @@ def mcp_status() -> None:
             table.add_row(name, label, endpoint, f"[green]✓ Managed by {provider}[/green]")
         else:
             try:
-                result = subprocess.run(["uvx", "--version"], capture_output=True, text=True)
+                subprocess.run(["uvx", "--version"], capture_output=True, text=True)
                 table.add_row(name, label, endpoint, "[green]✓ uvx available[/green]")
             except FileNotFoundError:
                 table.add_row(name, label, endpoint, "[red]✗ uvx not installed (pip install uv)[/red]")
 
     for name, port in custom_servers.items():
         try:
-            resp = httpx.get(f"http://localhost:{port}/sse", timeout=2)
+            httpx.get(f"http://localhost:{port}/sse", timeout=2)
             table.add_row(name, "[yellow]custom[/yellow]", str(port), "[green]✓ Running[/green]")
         except Exception:
             table.add_row(name, "[yellow]custom[/yellow]", str(port), "[red]✗ Not running[/red]")
@@ -457,7 +457,7 @@ def mcp_status() -> None:
 
 @demo_app.command("deploy")
 def demo_deploy(
-    config_path: Optional[str] = typer.Option(None, "--config", "-c"),
+    config_path: str | None = typer.Option(None, "--config", "-c"),
 ) -> None:
     """Deploy the demo application to GKE."""
     config = _load_config(config_path)
@@ -497,7 +497,7 @@ def demo_deploy(
         rich_console.print(f"[green]  ✓ {step_name} complete[/green]")
 
     # Apply manifests — prefer generated, fall back to template with sed
-    rich_console.print(f"\n[cyan]Applying demo manifests...[/cyan]")
+    rich_console.print("\n[cyan]Applying demo manifests...[/cyan]")
     if generated_demo.exists():
         result = subprocess.run(
             ["kubectl", "apply", "-f", str(generated_demo)],
@@ -515,7 +515,7 @@ def demo_deploy(
     if result.returncode != 0:
         rich_console.print(f"[red]  ✗ Failed: {result.stderr}[/red]")
         raise typer.Exit(1)
-    rich_console.print(f"[green]  ✓ Demo app deployed[/green]")
+    rich_console.print("[green]  ✓ Demo app deployed[/green]")
 
     rich_console.print("\n[bold green]Demo application deployed successfully![/bold green]")
     rich_console.print("Run 'nightops demo trigger --scenario memory-leak' to start a scenario.")
@@ -524,11 +524,9 @@ def demo_deploy(
 @demo_app.command("trigger")
 def demo_trigger(
     scenario: str = typer.Option(..., "--scenario", "-s", help="Scenario name"),
-    config_path: Optional[str] = typer.Option(None, "--config", "-c"),
+    config_path: str | None = typer.Option(None, "--config", "-c"),
 ) -> None:
     """Trigger a demo incident scenario."""
-    config = _load_config(config_path)
-
     # cli.py lives at src/nightops/cli.py, so the repo root is three levels up.
     project_root = Path(__file__).parent.parent.parent
     generated_dir = project_root / "deploy" / "generated" / "demo"
@@ -608,11 +606,11 @@ def demo_reset() -> None:
 @agent_app.command("run")
 def agent_run(
     interactive: bool = typer.Option(False, "--interactive", "-i", help="Interactive mode"),
-    incident: Optional[str] = typer.Option(None, "--incident", help="Incident description"),
+    incident: str | None = typer.Option(None, "--incident", help="Incident description"),
     simple: bool = typer.Option(False, "--simple", "-s", help="Simple mode: single agent with kubectl tools (no MCP)"),
     debug: bool = typer.Option(False, "--debug", help="Enable debug logging"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Verbose output"),
-    config_path: Optional[str] = typer.Option(None, "--config", "-c"),
+    config_path: str | None = typer.Option(None, "--config", "-c"),
 ) -> None:
     """Run TheNightOps agent to investigate an incident.
 
@@ -645,7 +643,7 @@ def agent_run(
 def agent_watch(
     simple: bool = typer.Option(False, "--simple", "-s", help="Simple mode: single agent with kubectl tools (no MCP)"),
     debug: bool = typer.Option(False, "--debug", help="Enable debug logging"),
-    config_path: Optional[str] = typer.Option(None, "--config", "-c"),
+    config_path: str | None = typer.Option(None, "--config", "-c"),
 ) -> None:
     """Start autonomous watch mode — webhooks + event watcher + proactive checks.
 
@@ -685,6 +683,7 @@ def agent_watch(
 async def _run_watch_mode(config: NightOpsConfig, simple_mode: bool = False) -> None:
     """Run the autonomous watch mode with all subsystems."""
     import os
+
     import uvicorn
 
     from nightops.ingestion.deduplication import AlertDeduplicator
@@ -825,6 +824,7 @@ async def _run_simple_single_investigation(
 ) -> None:
     """Run a single investigation using simple mode (kubectl tools, no MCP)."""
     import os
+
     from nightops.agents.simple_agent import run_simple_investigation
 
     rich_console.print(
@@ -863,6 +863,7 @@ async def _run_simple_single_investigation(
 async def _run_single_investigation(config: NightOpsConfig, incident_description: str) -> None:
     """Run a single incident investigation."""
     import os
+
     from nightops.agents.root_orchestrator import run_investigation
 
     rich_console.print(

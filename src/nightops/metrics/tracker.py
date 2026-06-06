@@ -13,16 +13,14 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Optional
 
 from nightops.core.config import MetricsConfig
 from nightops.core.models import (
     ImpactSummary,
     Investigation,
     InvestigationMetrics,
-    Severity,
 )
 
 logger = logging.getLogger(__name__)
@@ -61,7 +59,7 @@ class MetricsTracker:
 
         # Calculate timing
         started = investigation.started_at
-        completed = investigation.completed_at or datetime.now(timezone.utc)
+        completed = investigation.completed_at or datetime.now(UTC)
 
         time_to_detect = 0.0
         if incident.created_at and started:
@@ -98,7 +96,7 @@ class MetricsTracker:
 
     def get_impact_summary(self, period_days: int = 30) -> ImpactSummary:
         """Compute aggregated impact summary for the given period."""
-        cutoff = datetime.now(timezone.utc) - timedelta(days=period_days)
+        cutoff = datetime.now(UTC) - timedelta(days=period_days)
         recent = [r for r in self._records if r.created_at >= cutoff]
 
         if not recent:

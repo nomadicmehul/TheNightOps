@@ -20,19 +20,25 @@ Enhanced with:
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional
+from datetime import UTC
+from typing import Any
 
 import google.auth
 import google.auth.transport.requests
 from google.adk.agents import Agent
-from google.adk.tools.mcp_tool import McpToolset, SseConnectionParams, StdioConnectionParams, StreamableHTTPConnectionParams
+from google.adk.tools.mcp_tool import (
+    McpToolset,
+    SseConnectionParams,
+    StdioConnectionParams,
+    StreamableHTTPConnectionParams,
+)
 from mcp import StdioServerParameters
 
+from nightops.agents.anomaly_detector import create_anomaly_detector_agent
 from nightops.agents.communication_drafter import create_communication_drafter_agent
 from nightops.agents.deployment_correlator import create_deployment_correlator_agent
 from nightops.agents.log_analyst import create_log_analyst_agent
 from nightops.agents.runbook_retriever import create_runbook_retriever_agent
-from nightops.agents.anomaly_detector import create_anomaly_detector_agent
 from nightops.core.config import NightOpsConfig
 
 logger = logging.getLogger(__name__)
@@ -499,13 +505,13 @@ async def run_investigation(
     - Metrics Tracking: Records investigation metrics for impact reporting
     - Remediation Engine: Suggests auto-approvable vs manual actions
     """
+    from datetime import datetime
+
     import httpx
     from google.adk.runners import Runner
     from google.adk.sessions import InMemorySessionService
     from google.genai import types
-
-    from datetime import datetime, timezone
-    started_at = datetime.now(timezone.utc)
+    started_at = datetime.now(UTC)
     matched_ids: list[str] = []
 
     # ── Intelligence Layer: Find similar historical incidents ────

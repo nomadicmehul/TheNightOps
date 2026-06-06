@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-import pytest
-
-from nightops.agents.log_analyst import create_log_analyst_agent
-from nightops.agents.deployment_correlator import create_deployment_correlator_agent
-from nightops.agents.runbook_retriever import create_runbook_retriever_agent
 from nightops.agents.communication_drafter import create_communication_drafter_agent
+from nightops.agents.deployment_correlator import create_deployment_correlator_agent
+from nightops.agents.log_analyst import create_log_analyst_agent
+from nightops.agents.runbook_retriever import create_runbook_retriever_agent
 
 
 def test_log_analyst_agent_creation():
