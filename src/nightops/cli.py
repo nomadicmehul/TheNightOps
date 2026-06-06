@@ -477,7 +477,8 @@ def demo_deploy(
     ))
 
     # Use generated manifests if available, fall back to templates with sed
-    project_root = Path(__file__).parent.parent
+    # cli.py lives at src/nightops/cli.py, so the repo root is three levels up.
+    project_root = Path(__file__).parent.parent.parent
     generated_demo = project_root / "deploy" / "generated" / "demo" / "demo-app.yaml"
     template_demo = project_root / "demo" / "k8s_manifests" / "demo-app.yaml"
 
@@ -528,7 +529,8 @@ def demo_trigger(
     """Trigger a demo incident scenario."""
     config = _load_config(config_path)
 
-    project_root = Path(__file__).parent.parent
+    # cli.py lives at src/nightops/cli.py, so the repo root is three levels up.
+    project_root = Path(__file__).parent.parent.parent
     generated_dir = project_root / "deploy" / "generated" / "demo"
     template_dir = project_root / "demo" / "k8s_manifests"
 
@@ -709,6 +711,7 @@ async def _run_watch_mode(config: NightOpsConfig, simple_mode: bool = False) -> 
                 incident.description,
                 dashboard_url=dashboard_url,
                 incident_id=incident.id,
+                incident=incident,
             )
             result_key = "result" if simple_mode else "investigation_result"
             rich_console.print(

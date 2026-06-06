@@ -14,8 +14,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import uuid
-from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any
 
 from nightops.core.config import EventWatcherConfig
 from nightops.core.models import Incident, Severity
@@ -51,7 +50,7 @@ class EventWatcher:
         self.deduplicator = deduplicator
         self.on_new_incident = on_new_incident
         self._running = False
-        self._watch_task: Optional[asyncio.Task] = None
+        self._watch_task: asyncio.Task | None = None
         self._events_processed = 0
 
     async def start(self) -> None:
@@ -80,9 +79,14 @@ class EventWatcher:
         logger.info("Event watcher stopped (processed %d events)", self._events_processed)
 
     async def _watch_loop(self) -> None:
-        """Main watch loop — connects to the Kubernetes API and streams events."""
+        """Main watch loop — connects to the Kubernetes API and streams events.
+
+        Each configured namespace is watched by its own concurrent task so a
+        quiet namespace never blocks events arriving in a busy one.
+        """
         try:
-            from kubernetes import client, config, watch as k8s_watch
+            from kubernetes import client, config
+            from kubernetes import watch as k8s_watch
         except ImportError:
             logger.error("kubernetes package not installed — event watcher cannot start")
             return
@@ -100,33 +104,59 @@ class EventWatcher:
                 return
 
         v1 = client.CoreV1Api()
-        w = k8s_watch.Watch()
 
+        # Fan out: one watcher task per namespace, all running concurrently.
+        tasks = [
+            asyncio.create_task(self._watch_namespace(v1, k8s_watch, namespace))
+            for namespace in self.config.namespaces
+        ]
+        try:
+            await asyncio.gather(*tasks)
+        finally:
+            for task in tasks:
+                task.cancel()
+            await asyncio.gather(*tasks, return_exceptions=True)
+
+    async def _watch_namespace(self, v1: Any, k8s_watch: Any, namespace: str) -> None:
+        """Watch a single namespace, processing events incrementally.
+
+        Events are pulled from the blocking watch stream one at a time (each
+        ``next()`` runs in a worker thread) so they are handled the moment they
+        arrive instead of being buffered into multi-minute batches. When the
+        server closes the stream after ``watch_timeout_seconds`` we reconnect.
+        """
+        sentinel = object()
         while self._running:
+            w = k8s_watch.Watch()
             try:
-                for namespace in self.config.namespaces:
-                    logger.info("Watching events in namespace: %s", namespace)
-                    kwargs = {"namespace": namespace, "timeout_seconds": 300}
-
-                    # Run the blocking watch in a thread to keep async compatibility
-                    stream = await asyncio.to_thread(
-                        lambda: list(w.stream(v1.list_namespaced_event, **kwargs))
+                logger.info("Watching events in namespace: %s", namespace)
+                stream_iter = iter(
+                    w.stream(
+                        v1.list_namespaced_event,
+                        namespace=namespace,
+                        timeout_seconds=self.config.watch_timeout_seconds,
                     )
-
-                    for event_data in stream:
-                        if not self._running:
-                            break
-                        await self._handle_event(event_data)
-
+                )
+                while self._running:
+                    # next(it, sentinel) avoids StopIteration crossing the
+                    # thread/coroutine boundary; sentinel means the stream ended.
+                    event_data = await asyncio.to_thread(next, stream_iter, sentinel)
+                    if event_data is sentinel:
+                        break  # server closed the watch (timeout) — reconnect
+                    await self._handle_event(event_data)
             except asyncio.CancelledError:
-                break
+                raise
             except Exception:
-                logger.exception("Event watcher error, retrying in 10s")
+                logger.exception(
+                    "Event watcher error in namespace %s, retrying in 10s", namespace
+                )
                 await asyncio.sleep(10)
+            finally:
+                # Unblock any in-flight stream iteration running in the threadpool.
+                w.stop()
 
     async def _handle_event(self, event_data: dict) -> None:
         """Process a single Kubernetes event."""
-        event_type = event_data.get("type", "")
         obj = event_data.get("object")
         if obj is None:
             return

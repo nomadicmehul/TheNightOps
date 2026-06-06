@@ -32,6 +32,37 @@ from nightops.core.config import NightOpsConfig
 logger = logging.getLogger(__name__)
 
 
+# ── Secret denylist ──────────────────────────────────────────────
+# The agent's tools are read-only, but reading a Secret's YAML would dump
+# base64-encoded credentials (base64 is encoding, not encryption) straight into
+# the model's context — and from there into logs, the dashboard, and incident
+# memory. Block Secret reads outright. ConfigMaps and other resources stay
+# allowed because config-drift investigation legitimately needs them.
+_DENIED_RESOURCE_KINDS = {"secret", "secrets"}
+
+
+def _normalize_resource_kind(resource_type: str) -> str:
+    """Reduce a kubectl resource argument to its bare kind for denylist checks.
+
+    Handles api-qualified forms like ``secrets.v1.`` or ``secret.example.com``
+    by keeping only the leading segment.
+    """
+    return resource_type.strip().lower().split(".", 1)[0]
+
+
+def _is_denied_resource(resource_type: str) -> bool:
+    """True if the given kubectl resource kind must never be read."""
+    return _normalize_resource_kind(resource_type) in _DENIED_RESOURCE_KINDS
+
+
+_SECRET_BLOCKED_MESSAGE = (
+    "Error: reading Secret resources is blocked by policy. Secrets hold "
+    "credentials, tokens, and keys (base64 is not encryption), so NightOps "
+    "never surfaces them. Investigate via pod descriptions, events, logs, and "
+    "non-sensitive resources (e.g. ConfigMaps, Deployments) instead."
+)
+
+
 # ── kubectl-based Tool Functions ─────────────────────────────────
 # These are plain Python functions that ADK wraps as tools for the agent.
 # No MCP, no SSE, no HTTP — just subprocess calls to kubectl.
@@ -162,6 +193,9 @@ def kubectl_get_resource_yaml(resource_type: str, resource_name: str, namespace:
     Returns:
         Full YAML definition of the resource.
     """
+    if _is_denied_resource(resource_type):
+        logger.warning("Blocked YAML read of sensitive resource kind: %s", resource_type)
+        return _SECRET_BLOCKED_MESSAGE
     result = _run_kubectl(
         ["get", resource_type, resource_name, "-n", namespace, "-o", "yaml"]
     )
@@ -182,6 +216,12 @@ def kubectl_get_namespaces() -> str:
 
 def _run_kubectl(args: list[str], timeout: int = 30) -> str:
     """Execute a kubectl command and return its output."""
+    # Defense-in-depth: for `get`/`describe`, args[1] is the resource KIND
+    # (resource names live at args[2+]), so this never blocks a namespace or pod
+    # that merely happens to be named "secret".
+    if len(args) >= 2 and args[0] in {"get", "describe"} and _is_denied_resource(args[1]):
+        logger.warning("Blocked kubectl access to sensitive resource kind: %s", args[1])
+        return _SECRET_BLOCKED_MESSAGE
     cmd = ["kubectl"] + args
     try:
         result = subprocess.run(
@@ -277,6 +317,8 @@ Present your final analysis as:
 - Don't just report symptoms — trace back to the root cause
 - If you can't determine the root cause, say so clearly and list what you've ruled out
 - Be concise but thorough in your analysis
+- Secret resources are off-limits: reading them is blocked by policy. Don't attempt to
+  fetch Secret YAML — diagnose from pods, events, logs, and non-sensitive resources instead
 
 ## CRITICAL: You MUST always produce a final text response
 
@@ -334,6 +376,7 @@ async def run_simple_investigation(
     incident_description: str,
     dashboard_url: str | None = None,
     incident_id: str | None = None,
+    incident: Any | None = None,
 ) -> dict[str, Any]:
     """Run an investigation using the simple single-agent mode.
 
@@ -343,6 +386,10 @@ async def run_simple_investigation(
     from google.adk.runners import Runner
     from google.adk.sessions import InMemorySessionService
     from google.genai import types
+
+    from datetime import datetime, timezone
+    started_at = datetime.now(timezone.utc)
+    matched_ids: list[str] = []
 
     agent = create_simple_agent(config)
 
@@ -397,6 +444,7 @@ async def run_simple_investigation(
             memory = IncidentMemory(config.intelligence)
             similar = memory.find_similar(incident_description)
             if similar:
+                matched_ids = [s.incident_id for s in similar]
                 historical_context = "\n\n## Historical Context (Similar Past Incidents)\n"
                 for s in similar:
                     historical_context += (
@@ -569,6 +617,22 @@ async def run_simple_investigation(
         status = "failed"
     else:
         status = "completed"
+
+    # ── Close the learning loop: persist outcome + advisory remediations ──
+    if status == "completed":
+        from nightops.intelligence.recorder import finalize_investigation
+        remediation_section = finalize_investigation(
+            config,
+            incident=incident,
+            incident_description=incident_description,
+            incident_id=incident_id,
+            started_at=started_at,
+            result_text=investigation_result,
+            tools_called=tools_called,
+            matched_ids=matched_ids,
+        )
+        if remediation_section:
+            investigation_result += "\n\n" + remediation_section
 
     await _push_event({
         "type": "investigation_completed",

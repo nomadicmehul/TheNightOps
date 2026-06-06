@@ -221,13 +221,23 @@ def _build_root_instruction(use_gcp: bool) -> str:
     )
 
 
-def create_mcp_toolsets(config: NightOpsConfig) -> list[McpToolset]:
-    """Create MCP toolset connections for all configured servers.
+def create_categorized_toolsets(config: NightOpsConfig) -> dict[str, list[McpToolset]]:
+    """Create MCP toolsets grouped by capability domain.
 
-    Connects to custom MCP servers via SSE transport.
-    Also supports official Google Cloud MCP and Grafana MCP when enabled.
+    Grouping lets the orchestrator scope each sub-agent to only the tools its
+    role needs (least privilege), instead of handing every agent the full set.
+    Categories:
+      - ``logging``        — Cloud Observability + custom Cloud Logging
+      - ``kubernetes``     — official GKE (incl. multi-cluster) + custom K8s
+      - ``grafana``        — Grafana alerts/dashboards/incidents
+      - ``notifications``  — Slack + Email/Telegram/WhatsApp (send capability)
     """
-    toolsets = []
+    toolsets: dict[str, list[McpToolset]] = {
+        "logging": [],
+        "kubernetes": [],
+        "grafana": [],
+        "notifications": [],
+    }
 
     # ── Official Google Cloud MCP Servers (IAM-authenticated, Streamable HTTP) ──
     if config.cloud_observability.enabled:
@@ -236,7 +246,7 @@ def create_mcp_toolsets(config: NightOpsConfig) -> list[McpToolset]:
             config.cloud_observability.endpoint,
             config.cloud_observability.project_id,
         )
-        toolsets.append(
+        toolsets["logging"].append(
             McpToolset(
                 connection_params=StreamableHTTPConnectionParams(
                     url=config.cloud_observability.endpoint,
@@ -254,7 +264,7 @@ def create_mcp_toolsets(config: NightOpsConfig) -> list[McpToolset]:
             config.gke.location,
             config.gke.cluster,
         )
-        toolsets.append(
+        toolsets["kubernetes"].append(
             McpToolset(
                 connection_params=StreamableHTTPConnectionParams(
                     url=config.gke.endpoint,
@@ -277,7 +287,7 @@ def create_mcp_toolsets(config: NightOpsConfig) -> list[McpToolset]:
             "Connecting to GKE MCP for cluster: %s/%s (%s)",
             cluster_config.location, cluster_config.name, cluster_config.environment,
         )
-        toolsets.append(
+        toolsets["kubernetes"].append(
             McpToolset(
                 connection_params=StreamableHTTPConnectionParams(
                     url=cluster_config.gke_mcp_endpoint,
@@ -302,7 +312,7 @@ def create_mcp_toolsets(config: NightOpsConfig) -> list[McpToolset]:
         if config.grafana.enabled_tools:
             grafana_args.extend(["--enabled-tools", config.grafana.enabled_tools])
 
-        toolsets.append(
+        toolsets["grafana"].append(
             McpToolset(
                 connection_params=StdioConnectionParams(
                     server_params=StdioServerParameters(
@@ -325,7 +335,7 @@ def create_mcp_toolsets(config: NightOpsConfig) -> list[McpToolset]:
             config.kubernetes.host,
             config.kubernetes.port,
         )
-        toolsets.append(
+        toolsets["kubernetes"].append(
             McpToolset(
                 connection_params=SseConnectionParams(
                     url=f"http://{config.kubernetes.host}:{config.kubernetes.port}/sse",
@@ -339,7 +349,7 @@ def create_mcp_toolsets(config: NightOpsConfig) -> list[McpToolset]:
             config.cloud_logging_custom.host,
             config.cloud_logging_custom.port,
         )
-        toolsets.append(
+        toolsets["logging"].append(
             McpToolset(
                 connection_params=SseConnectionParams(
                     url=f"http://{config.cloud_logging_custom.host}:{config.cloud_logging_custom.port}/sse",
@@ -353,7 +363,7 @@ def create_mcp_toolsets(config: NightOpsConfig) -> list[McpToolset]:
             config.slack.host,
             config.slack.port,
         )
-        toolsets.append(
+        toolsets["notifications"].append(
             McpToolset(
                 connection_params=SseConnectionParams(
                     url=f"http://{config.slack.host}:{config.slack.port}/sse",
@@ -367,7 +377,7 @@ def create_mcp_toolsets(config: NightOpsConfig) -> list[McpToolset]:
             config.notifications.host,
             config.notifications.port,
         )
-        toolsets.append(
+        toolsets["notifications"].append(
             McpToolset(
                 connection_params=SseConnectionParams(
                     url=f"http://{config.notifications.host}:{config.notifications.port}/sse",
@@ -376,6 +386,12 @@ def create_mcp_toolsets(config: NightOpsConfig) -> list[McpToolset]:
         )
 
     return toolsets
+
+
+def create_mcp_toolsets(config: NightOpsConfig) -> list[McpToolset]:
+    """Flat list of every configured MCP toolset (kept for backward compatibility)."""
+    categorized = create_categorized_toolsets(config)
+    return [ts for group in categorized.values() for ts in group]
 
 
 def _is_gcp_mode(config: NightOpsConfig) -> bool:
@@ -402,21 +418,29 @@ def create_root_orchestrator(
     else:
         logger.info("Using local mode — agent instructions will reference custom MCP tool names")
 
-    # Create MCP toolsets first (so sub-agents can use them)
-    mcp_toolsets = create_mcp_toolsets(config)
+    # Create MCP toolsets grouped by domain, then scope each agent to least
+    # privilege: an agent only receives the tool categories its prompt uses.
+    # This keeps send-capable tools (Slack/Notifications) out of read-only
+    # investigation agents entirely.
+    toolsets = create_categorized_toolsets(config)
+    k8s_tools = toolsets["kubernetes"]
+    logging_tools = toolsets["logging"]
+    grafana_tools = toolsets["grafana"]
 
-    # Create sub-agents — give investigation agents access to MCP tools
-    # Communication drafter has no tools (text output only)
-    log_analyst = create_log_analyst_agent(model=model, tools=list(mcp_toolsets), use_gcp=use_gcp)
+    # Create sub-agents with role-scoped tools.
+    # Communication drafter intentionally has no tools (advisory text output only).
+    log_analyst = create_log_analyst_agent(
+        model=model, tools=list(logging_tools), use_gcp=use_gcp,
+    )
     deployment_correlator = create_deployment_correlator_agent(
-        model=model, tools=list(mcp_toolsets), use_gcp=use_gcp,
+        model=model, tools=list(k8s_tools), use_gcp=use_gcp,
     )
     runbook_retriever = create_runbook_retriever_agent(
-        model=model, tools=list(mcp_toolsets), use_gcp=use_gcp,
+        model=model, tools=list(k8s_tools + logging_tools + grafana_tools), use_gcp=use_gcp,
     )
     communication_drafter = create_communication_drafter_agent(model=model)
     anomaly_detector = create_anomaly_detector_agent(
-        model=model, tools=list(mcp_toolsets), use_gcp=use_gcp,
+        model=model, tools=list(k8s_tools + logging_tools), use_gcp=use_gcp,
     )
 
     # Build the root orchestrator
@@ -437,16 +461,23 @@ def create_root_orchestrator(
             communication_drafter,
             anomaly_detector,
         ],
-        tools=[*mcp_toolsets],
+        # Root performs Phase-1 triage directly via kube_get + list_log_entries,
+        # so it needs kubernetes + logging tools only (no send/grafana tools).
+        tools=list(k8s_tools + logging_tools),
     )
 
-    toolset_count = len(mcp_toolsets)
+    toolset_count = sum(len(group) for group in toolsets.values())
     cluster_count = sum(1 for c in config.clusters if c.enabled)
 
     logger.info(
-        "Root orchestrator created with %d sub-agents, %d MCP toolsets, %d extra clusters",
+        "Root orchestrator created with %d sub-agents, %d MCP toolsets "
+        "(k8s=%d, logging=%d, grafana=%d, notifications=%d), %d extra clusters",
         5,
         toolset_count,
+        len(k8s_tools),
+        len(logging_tools),
+        len(grafana_tools),
+        len(toolsets["notifications"]),
         cluster_count,
     )
 
@@ -458,6 +489,7 @@ async def run_investigation(
     incident_description: str,
     dashboard_url: str | None = None,
     incident_id: str | None = None,
+    incident: Any | None = None,
 ) -> dict[str, Any]:
     """
     Run a full incident investigation.
@@ -472,6 +504,10 @@ async def run_investigation(
     from google.adk.sessions import InMemorySessionService
     from google.genai import types
 
+    from datetime import datetime, timezone
+    started_at = datetime.now(timezone.utc)
+    matched_ids: list[str] = []
+
     # ── Intelligence Layer: Find similar historical incidents ────
     historical_context = ""
     if config.intelligence.enabled:
@@ -480,6 +516,7 @@ async def run_investigation(
             memory = IncidentMemory(config.intelligence)
             similar = memory.find_similar(incident_description)
             if similar:
+                matched_ids = [s.incident_id for s in similar]
                 historical_context = "\n\n## Historical Context (Similar Past Incidents)\n"
                 for s in similar:
                     historical_context += (
@@ -728,6 +765,22 @@ async def run_investigation(
         status = "failed"
     else:
         status = "completed"
+
+    # ── Close the learning loop: persist outcome + advisory remediations ──
+    if status == "completed":
+        from nightops.intelligence.recorder import finalize_investigation
+        remediation_section = finalize_investigation(
+            config,
+            incident=incident,
+            incident_description=incident_description,
+            incident_id=incident_id,
+            started_at=started_at,
+            result_text=investigation_result,
+            tools_called=tools_called,
+            matched_ids=matched_ids,
+        )
+        if remediation_section:
+            investigation_result += "\n\n" + remediation_section
 
     await _push_dashboard_event({
         "type": "investigation_completed",

@@ -168,28 +168,37 @@ class IncidentMemory:
         return len(self._records)
 
 
+_PATTERN_KEYWORDS: dict[str, list[str]] = {
+    "oom_kill": ["oomkilled", "oom", "out of memory", "memory limit"],
+    "cpu_spike": ["cpu", "throttl", "high cpu", "cpu exhaustion"],
+    "cascading_failure": ["cascading", "timeout", "connection pool", "circuit break"],
+    "config_drift": ["config", "configmap", "environment variable", "drift"],
+    "crashloop": ["crashloopbackoff", "crash loop", "backoff"],
+    "disk_pressure": ["disk", "storage", "volume", "pvc"],
+    "network": ["network", "dns", "connection refused", "unreachable"],
+    "deployment_failure": ["rollout", "deploy", "image pull", "imagepullbackoff"],
+}
+
+
+def detect_pattern_type(text: str) -> str:
+    """Detect the incident pattern type from a block of free text.
+
+    Public helper so other modules (e.g. the outcome recorder) can classify
+    an incident from RCA text without constructing an Investigation.
+    """
+    lowered = text.lower()
+    for pattern_name, keywords in _PATTERN_KEYWORDS.items():
+        if any(kw in lowered for kw in keywords):
+            return pattern_name
+    return "unknown"
+
+
 def _detect_pattern_type(investigation: Investigation) -> str:
-    """Detect the incident pattern type from findings."""
+    """Detect the incident pattern type from an investigation's findings."""
     text = " ".join(
         f.description.lower() for f in investigation.findings
     ) + " " + investigation.root_cause.lower()
-
-    patterns = {
-        "oom_kill": ["oomkilled", "oom", "out of memory", "memory limit"],
-        "cpu_spike": ["cpu", "throttl", "high cpu", "cpu exhaustion"],
-        "cascading_failure": ["cascading", "timeout", "connection pool", "circuit break"],
-        "config_drift": ["config", "configmap", "environment variable", "drift"],
-        "crashloop": ["crashloopbackoff", "crash loop", "backoff"],
-        "disk_pressure": ["disk", "storage", "volume", "pvc"],
-        "network": ["network", "dns", "connection refused", "unreachable"],
-        "deployment_failure": ["rollout", "deploy", "image pull", "imagepullbackoff"],
-    }
-
-    for pattern_name, keywords in patterns.items():
-        if any(kw in text for kw in keywords):
-            return pattern_name
-
-    return "unknown"
+    return detect_pattern_type(text)
 
 
 def _tokenize(text: str) -> list[str]:

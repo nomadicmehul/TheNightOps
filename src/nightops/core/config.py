@@ -5,12 +5,11 @@ from __future__ import annotations
 import os
 import re
 from pathlib import Path
-from typing import Literal, Optional
+from typing import Literal
 
 import yaml
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
-
 
 # ── Official Google Cloud MCP Server Configs ────────────────────────
 
@@ -82,7 +81,7 @@ class GrafanaConfig(BaseSettings):
     type: Literal["official"] = "official"
     transport: str = "stdio"
     url: str = Field(default="http://localhost:3000", description="Grafana instance URL")
-    service_account_token: Optional[str] = Field(default="", description="Grafana service account token")
+    service_account_token: str | None = Field(default="", description="Grafana service account token")
     enabled: bool = True
     enabled_tools: str = ""  # Comma-separated extra tool categories to enable
 
@@ -177,6 +176,10 @@ class EventWatcherConfig(BaseSettings):
         ]
     )
     min_severity_to_alert: str = "Warning"
+    # Server-side watch timeout. The K8s API closes the watch after this many
+    # seconds; the watcher then transparently reconnects. Lower = more frequent
+    # reconnects; higher = longer-lived streams.
+    watch_timeout_seconds: int = 300
 
 
 # ── Intelligence Config ───────────────────────────────────────────
@@ -395,7 +398,7 @@ class NightOpsConfig(BaseSettings):
         return cls(**data)
 
     @classmethod
-    def load(cls, config_path: Optional[str | Path] = None) -> NightOpsConfig:
+    def load(cls, config_path: str | Path | None = None) -> NightOpsConfig:
         """Load config from file or use defaults with environment variables."""
         if config_path and Path(config_path).exists():
             return cls.from_yaml(config_path)
