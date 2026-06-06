@@ -29,7 +29,8 @@ def test_runbook_retriever_agent_creation():
     """Test that runbook retriever agent is created correctly."""
     agent = create_runbook_retriever_agent()
     assert agent.name == "runbook_retriever"
-    assert "alerts" in agent.description.lower() or "runbook" in agent.description.lower()
+    desc = agent.description.lower()
+    assert "incident" in desc or "historical" in desc or "resolution" in desc
 
 
 def test_communication_drafter_agent_creation():

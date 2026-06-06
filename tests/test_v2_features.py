@@ -535,8 +535,8 @@ class TestConfigV2:
     def test_supported_models(self):
         from nightops.core.config import SUPPORTED_MODELS
 
-        assert "gemini-3.1-pro" in SUPPORTED_MODELS
-        assert "gemini-3-flash" in SUPPORTED_MODELS
+        assert "gemini-3.1-pro-preview" in SUPPORTED_MODELS
+        assert "gemini-3-flash-preview" in SUPPORTED_MODELS
         assert "gemini-2.5-flash" in SUPPORTED_MODELS
 
     def test_webhook_config_defaults(self):
