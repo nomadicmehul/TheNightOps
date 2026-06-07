@@ -218,13 +218,20 @@ echo "                      GOOGLE_CLOUD_LOCATION=${REGION}  (run: gcloud servic
 echo "  Note: if AI Studio returns 429 (no credits), switch to Vertex."
 echo "  On Vertex, set NIGHTOPS_MODEL=gemini-2.5-flash (gemini-3.1-pro-preview is not on Vertex)."
 
-# ── Generate Manifests ────────────────────────────────────────
+# ── Generate Manifests (optional — only for deploying the agent INTO GKE) ──
+# Non-fatal: local runs (run-local.sh / nightops agent run) don't need these,
+# so a failure here must not abort an otherwise-successful cluster setup.
 echo ""
 echo "→ Generating K8s manifests from config/.env..."
 if [[ -f "${SCRIPT_DIR}/generate-manifests.sh" ]]; then
-    "${SCRIPT_DIR}/generate-manifests.sh"
-    echo ""
-    echo "  ✓ Manifests generated in deploy/generated/"
+    if "${SCRIPT_DIR}/generate-manifests.sh"; then
+        echo ""
+        echo "  ✓ Manifests generated in deploy/generated/"
+    else
+        echo ""
+        echo "  ⚠ Manifest generation skipped (only needed to deploy the agent INTO GKE)."
+        echo "    Local runs don't need it. Fix config/.env and re-run generate-manifests.sh if you want them."
+    fi
 else
     echo "  ⚠ scripts/generate-manifests.sh not found, skipping"
 fi
