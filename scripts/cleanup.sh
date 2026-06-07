@@ -19,6 +19,20 @@ PROJECT_ID="${GCP_PROJECT_ID:?Set GCP_PROJECT_ID in config/.env or environment}"
 CLUSTER_NAME="${GKE_CLUSTER_NAME:-nightops-demo}"
 ZONE="${GKE_CLUSTER_LOCATION:-${GCP_ZONE:-us-central1-a}}"
 
+# Flags: --delete-cluster / -y / --yes delete the cluster non-interactively.
+DELETE_CLUSTER=false
+for arg in "$@"; do
+    case "${arg}" in
+        --delete-cluster|-y|--yes) DELETE_CLUSTER=true ;;
+        -h|--help)
+            echo "Usage: cleanup.sh [--delete-cluster|-y]"
+            echo "  Removes demo/agent namespaces and AR images."
+            echo "  --delete-cluster / -y : also delete the GKE cluster (stops billing) without prompting."
+            exit 0 ;;
+        *) echo "Unknown argument: ${arg}"; exit 1 ;;
+    esac
+done
+
 echo "TheNightOps — Cleanup"
 echo "====================="
 
@@ -43,18 +57,23 @@ gcloud artifacts docker images delete \
     --quiet 2>/dev/null || true
 echo "  ✓ Images cleaned up"
 
-# Optionally delete cluster
-read -p "Delete GKE cluster '${CLUSTER_NAME}'? (y/N) " -n 1 -r
-echo
-if [[ $REPLY =~ ^[Yy]$ ]]; then
+# Delete the cluster — this is the resource that actually bills (~3 nodes).
+if [[ "${DELETE_CLUSTER}" != "true" ]]; then
+    echo ""
+    echo "⚠ The GKE cluster '${CLUSTER_NAME}' keeps billing while it runs (~3 nodes)."
+    read -p "Delete it now to stop charges? (y/N) " -n 1 -r
+    echo
+fi
+if [[ "${DELETE_CLUSTER}" == "true" || ${REPLY:-} =~ ^[Yy]$ ]]; then
     echo "→ Deleting GKE cluster..."
     gcloud container clusters delete "${CLUSTER_NAME}" \
         --project="${PROJECT_ID}" \
         --zone="${ZONE}" \
         --quiet
-    echo "  ✓ Cluster deleted"
+    echo "  ✓ Cluster deleted — billing stopped."
 else
-    echo "  Cluster preserved."
+    echo "  Cluster PRESERVED — it is still billing."
+    echo "  To delete later: gcloud container clusters delete ${CLUSTER_NAME} --zone ${ZONE} --project ${PROJECT_ID} --quiet"
 fi
 
 echo ""

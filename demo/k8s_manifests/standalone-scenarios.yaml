@@ -1,0 +1,174 @@
+---
+# TheNightOps — Standalone Demo Scenarios (NO build required)
+#
+# Six real Kubernetes failure modes using public images only — no custom demo
+# image, Docker build, or Artifact Registry needed. Apply this to give the agent
+# genuine incidents to investigate in either Plan A (MCP) or Plan B (kubectl).
+#
+#   kubectl apply -f demo/k8s_manifests/standalone-scenarios.yaml
+#
+# (For the image-based demo app with FAILURE_MODE toggling, use `nightops demo
+#  deploy` + `nightops demo trigger` instead — that path requires a built image.)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nightops-demo
+  labels:
+    app.kubernetes.io/part-of: nightops
+---
+# Scenario 1 — OOMKill: allocates 300M but limited to 100Mi -> OOMKilled -> CrashLoopBackOff
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-api
+  namespace: nightops-demo
+  labels: { app: demo-api }
+  annotations: { nightops.io/scenario: "oom-kill" }
+spec:
+  replicas: 3
+  selector: { matchLabels: { app: demo-api } }
+  template:
+    metadata: { labels: { app: demo-api } }
+    spec:
+      containers:
+        - name: demo-api
+          image: polinux/stress
+          command: ["stress"]
+          args: ["--vm", "1", "--vm-bytes", "300M", "--vm-hang", "0"]
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { cpu: 200m, memory: 100Mi }
+---
+# Scenario 2 — Config drift: required env missing -> exit 1 -> CrashLoopBackOff
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-api
+  namespace: nightops-demo
+  labels: { app: payment-api }
+  annotations: { nightops.io/scenario: "config-drift" }
+spec:
+  replicas: 2
+  selector: { matchLabels: { app: payment-api } }
+  template:
+    metadata: { labels: { app: payment-api } }
+    spec:
+      containers:
+        - name: payment-api
+          image: busybox:1.36
+          command: ["sh", "-c"]
+          args: ["echo 'FATAL: required config DATABASE_URL is not set'; sleep 3; exit 1"]
+          resources:
+            requests: { cpu: 25m, memory: 32Mi }
+            limits: { cpu: 100m, memory: 64Mi }
+---
+# Scenario 3 — Bad image: nonexistent tag -> ImagePullBackOff
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inventory-api
+  namespace: nightops-demo
+  labels: { app: inventory-api }
+  annotations: { nightops.io/scenario: "bad-image" }
+spec:
+  replicas: 2
+  selector: { matchLabels: { app: inventory-api } }
+  template:
+    metadata: { labels: { app: inventory-api } }
+    spec:
+      containers:
+        - name: inventory-api
+          image: docker.io/library/inventory-api-does-not-exist:v9.9.9
+          resources:
+            requests: { cpu: 25m, memory: 32Mi }
+            limits: { cpu: 100m, memory: 64Mi }
+---
+# Scenario 4 — Impossible CPU request -> Pending / FailedScheduling
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: report-batch
+  namespace: nightops-demo
+  labels: { app: report-batch }
+  annotations: { nightops.io/scenario: "failed-scheduling" }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: report-batch } }
+  template:
+    metadata: { labels: { app: report-batch } }
+    spec:
+      containers:
+        - name: report-batch
+          image: nginx:1.27-alpine
+          resources:
+            requests: { cpu: "64", memory: 64Mi }
+            limits: { cpu: "64", memory: 128Mi }
+---
+# Scenario 5 — Readiness probe on wrong port -> Running but never Ready (0/1)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-web
+  namespace: nightops-demo
+  labels: { app: frontend-web }
+  annotations: { nightops.io/scenario: "readiness-probe-failure" }
+spec:
+  replicas: 2
+  selector: { matchLabels: { app: frontend-web } }
+  template:
+    metadata: { labels: { app: frontend-web } }
+    spec:
+      containers:
+        - name: frontend-web
+          image: nginx:1.27-alpine
+          ports: [{ containerPort: 80 }]
+          readinessProbe:
+            httpGet: { path: /ready, port: 8080 }   # nginx listens on 80 -> always fails
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          resources:
+            requests: { cpu: 25m, memory: 32Mi }
+            limits: { cpu: 100m, memory: 64Mi }
+---
+# Scenario 6 — Shared missing Secret -> two services fail at once (CreateContainerConfigError)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: checkout-api
+  namespace: nightops-demo
+  labels: { app: checkout-api, tier: payments }
+  annotations: { nightops.io/scenario: "cascading-missing-secret" }
+spec:
+  replicas: 2
+  selector: { matchLabels: { app: checkout-api } }
+  template:
+    metadata: { labels: { app: checkout-api, tier: payments } }
+    spec:
+      containers:
+        - name: checkout-api
+          image: nginx:1.27-alpine
+          envFrom: [{ secretRef: { name: payments-credentials } }]   # missing secret
+          resources:
+            requests: { cpu: 25m, memory: 32Mi }
+            limits: { cpu: 100m, memory: 64Mi }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cart-api
+  namespace: nightops-demo
+  labels: { app: cart-api, tier: payments }
+  annotations: { nightops.io/scenario: "cascading-missing-secret" }
+spec:
+  replicas: 2
+  selector: { matchLabels: { app: cart-api } }
+  template:
+    metadata: { labels: { app: cart-api, tier: payments } }
+    spec:
+      containers:
+        - name: cart-api
+          image: nginx:1.27-alpine
+          envFrom: [{ secretRef: { name: payments-credentials } }]   # same missing secret
+          resources:
+            requests: { cpu: 25m, memory: 32Mi }
+            limits: { cpu: 100m, memory: 64Mi }
