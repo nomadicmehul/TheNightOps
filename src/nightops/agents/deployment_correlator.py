@@ -15,39 +15,45 @@ Your role is to investigate whether recent changes (deployments, config updates,
 scaling events) could be the root cause of the current incident.
 
 ## Your Capabilities
-You have access to the official GKE MCP tools:
-- `kube_get` — Get any Kubernetes resource. Specify the resource kind and namespace.
-  Examples: kind="deployments", kind="pods", kind="events", kind="replicasets"
-- `kube_api_resources` — List available Kubernetes API resource types
-- `list_node_pools` — List node pools in the cluster
-- `get_node_pool` — Get node pool details
+You have access to the official GKE MCP tools. EVERY call REQUIRES a `parent` argument
+(see Cluster Context below):
+- `get_k8s_resource` — Get/list resources. Args: parent,
+  resourceType ("deployments"|"pods"|"events"|"replicasets"|...), optional namespace, name.
+- `describe_k8s_resource` — Detailed resource info.
+  Args: parent, resourceType, name, optional namespace.
+- `list_k8s_events` — Cluster events. Args: parent, optional namespace or allNamespaces=true, limit.
+- `get_k8s_logs` — Container logs from a pod.
+  Args: parent, name (pod), optional namespace, container, previous=true, tail.
+- `get_k8s_rollout_status` — Rollout status. Args: parent, resourceType, name.
 
 ## Investigation Protocol
 
-1. **Recent Deployments**: Use `kube_get` with kind="deployments" to check all deployments
-   in the affected namespace. Look for:
+1. **Recent Deployments**: Use `get_k8s_resource` resourceType="deployments" to check
+   all deployments in the affected namespace. Look for:
    - Deployments with mismatched replica counts (desired vs ready)
    - New image versions that coincide with incident timing
    - Unhealthy deployment conditions
 
-2. **Pod Health**: Use `kube_get` with kind="pods" to check pods in the affected service:
+2. **Pod Health**: Use `get_k8s_resource` resourceType="pods" to check pods in the affected service:
    - High restart counts suggest crashes or OOMKills
    - Pods in CrashLoopBackOff indicate a persistent failure
    - Pending pods suggest scheduling or resource issues
 
-3. **Kubernetes Events**: Use `kube_get` with kind="events" to look for Warning events:
+3. **Kubernetes Events**: Use `list_k8s_events` to look for Warning events:
    - OOMKilled: Memory limit exceeded
    - FailedScheduling: Not enough cluster resources
    - Unhealthy: Liveness/readiness probe failures
    - BackOff: Container crash loop
 
-4. **Resource Analysis**: Use `kube_get` with kind="pods" and examine resource requests/limits:
+4. **Resource Analysis**: Use `describe_k8s_resource` resourceType="pods" name=<pod>
+   and examine resource requests/limits:
    - Pods near their memory limits → risk of OOM
    - Pods without resource limits → unbounded consumption
 
-5. **Deep Dive**: Use `kube_get` with kind="pods" and a specific pod name for detailed info:
+5. **Deep Dive**: Use `describe_k8s_resource` (resourceType="pods", name=<pod>) and
+   `get_k8s_logs` (name=<pod>, previous=true) for detailed info:
    - Get full pod details including events and conditions
-   - Check container statuses for error messages
+   - Check container statuses and crash logs for error messages
 
 ## Output Format
 
@@ -112,13 +118,15 @@ Structure your findings as:
 
 
 def create_deployment_correlator_agent(
-    model: str = "gemini-2.5-flash", tools=None, use_gcp: bool = True,
+    model: str = "gemini-2.5-flash", tools=None, use_gcp: bool = True, gcp_context: str = "",
 ) -> Agent:
     """Create the Deployment Correlator sub-agent."""
     instruction = (
         _DEPLOYMENT_CORRELATOR_GCP_INSTRUCTION if use_gcp
         else _DEPLOYMENT_CORRELATOR_LOCAL_INSTRUCTION
     )
+    if use_gcp and gcp_context:
+        instruction = f"{instruction}\n\n{gcp_context}"
     return Agent(
         name="deployment_correlator",
         model=model,

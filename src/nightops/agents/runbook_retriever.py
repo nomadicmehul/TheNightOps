@@ -22,9 +22,14 @@ You work with the historical context provided by the Root Orchestrator, which in
 - Known remediation patterns and their success rates
 - Historical MTTR benchmarks for similar issues
 
-You also have access to the official GKE and Cloud Observability MCP tools:
-- `kube_get` — Get Kubernetes resources. Use kind="events" for event history, kind="deployments" for deployment changes.
-- `list_log_entries` — Query Cloud Logging entries with filter expressions for historical log patterns.
+You also have access to the official GKE and Cloud Observability MCP tools. EVERY GKE call
+REQUIRES a `parent` argument (see Cluster Context below):
+- `list_k8s_events` — Kubernetes event history.
+  Args: parent, optional namespace or allNamespaces=true, limit.
+- `get_k8s_resource` — Get/list resources.
+  Args: parent, resourceType ("deployments"|"events"|...), optional namespace, name.
+- `list_log_entries` — Query Cloud Logging for historical patterns.
+  Args: resourceNames (e.g. ["projects/<PROJECT>"]), filter.
 
 ## Investigation Protocol
 
@@ -33,7 +38,7 @@ You also have access to the official GKE and Cloud Observability MCP tools:
    - If a similar incident was resolved before, note the root cause and resolution
    - Compare MTTR benchmarks to set expectations
 
-2. **Event Context**: Use `kube_get` with kind="events" to gather Kubernetes event history:
+2. **Event Context**: Use `list_k8s_events` to gather Kubernetes event history:
    - Look for Warning events across relevant namespaces
    - Check if similar events have occurred recently (recurring issue)
    - Note the timeline of events leading up to the incident
@@ -43,7 +48,7 @@ You also have access to the official GKE and Cloud Observability MCP tools:
    - Determine if this is a new issue or a recurring one
    - Check if error rates have been gradually increasing
 
-4. **Deployment Timeline**: Use `kube_get` with kind="deployments" to check recent changes:
+4. **Deployment Timeline**: Use `get_k8s_resource` resourceType="deployments" to check recent changes:
    - Identify any deployments in the last few hours
    - Note image version changes that might have introduced the issue
 
@@ -108,13 +113,15 @@ Structure your findings as:
 
 
 def create_runbook_retriever_agent(
-    model: str = "gemini-2.5-flash", tools=None, use_gcp: bool = True,
+    model: str = "gemini-2.5-flash", tools=None, use_gcp: bool = True, gcp_context: str = "",
 ) -> Agent:
     """Create the Runbook Retriever sub-agent."""
     instruction = (
         _RUNBOOK_RETRIEVER_GCP_INSTRUCTION if use_gcp
         else _RUNBOOK_RETRIEVER_LOCAL_INSTRUCTION
     )
+    if use_gcp and gcp_context:
+        instruction = f"{instruction}\n\n{gcp_context}"
     return Agent(
         name="runbook_retriever",
         model=model,

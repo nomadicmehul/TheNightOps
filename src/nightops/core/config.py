@@ -395,7 +395,31 @@ class NightOpsConfig(BaseSettings):
                 mcp["cloud_logging_custom"] = mcp.pop("cloud_logging")
             data.update(mcp)
 
+        cls._apply_agent_env_overrides(data)
         return cls(**data)
+
+    @staticmethod
+    def _apply_agent_env_overrides(data: dict) -> None:
+        """Apply optional agent overrides from env vars (see config/.env.example).
+
+        Lets the local environment override the YAML default without editing the
+        tracked config file — e.g. NIGHTOPS_MODEL=gemini-2.5-flash for Vertex.
+        """
+        overrides: dict[str, object] = {}
+        if model := os.getenv("NIGHTOPS_MODEL"):
+            overrides["model"] = model
+        if max_time := os.getenv("NIGHTOPS_MAX_INVESTIGATION_TIME"):
+            if max_time.isdigit():
+                overrides["max_investigation_time"] = int(max_time)
+        if (verbose := os.getenv("NIGHTOPS_VERBOSE")) is not None and verbose != "":
+            overrides["verbose"] = verbose.lower() in ("1", "true", "yes", "on")
+        if not overrides:
+            return
+        agent = data.get("agent")
+        if not isinstance(agent, dict):
+            agent = {}
+            data["agent"] = agent
+        agent.update(overrides)
 
     @classmethod
     def load(cls, config_path: str | Path | None = None) -> NightOpsConfig:
@@ -410,7 +434,11 @@ class NightOpsConfig(BaseSettings):
 
         # Fall back to environment variables and defaults
         project_id = os.getenv("GCP_PROJECT_ID", "")
+        agent_kwargs: dict[str, str] = {}
+        if model := os.getenv("NIGHTOPS_MODEL"):
+            agent_kwargs["model"] = model
         return cls(
+            agent=AgentConfig(**agent_kwargs),
             cloud_observability=CloudObservabilityConfig(
                 project_id=project_id,
             ),

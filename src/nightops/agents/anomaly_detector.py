@@ -17,28 +17,31 @@ before they cause outages.
 
 ## Your Capabilities
 
-You have access to the official GKE and Cloud Observability MCP tools:
-- `kube_get` — Get any Kubernetes resource. Specify the resource kind and namespace.
-  Examples: kind="pods", kind="deployments", kind="events", kind="nodes"
-- `kube_api_resources` — List available Kubernetes API resource types
-- `list_log_entries` — Query Cloud Logging entries with filter expressions
-- `list_node_pools` — List node pools in the cluster
+You have access to the official GKE and Cloud Observability MCP tools. EVERY GKE call
+REQUIRES a `parent` argument (see Cluster Context below):
+- `get_k8s_resource` — Get/list resources.
+  Args: parent, resourceType ("pods"|"deployments"|"nodes"|...), optional namespace, name.
+- `list_k8s_events` — Cluster events. Args: parent, optional namespace or allNamespaces=true, limit.
+- `describe_k8s_resource` — Detailed resource info.
+  Args: parent, resourceType, name, optional namespace.
+- `list_log_entries` — Query Cloud Logging.
+  Args: resourceNames (e.g. ["projects/<PROJECT>"]), filter.
 
 ## Health Checks You Perform
 
 When activated, systematically run these checks:
 
 ### 1. Pod Health
-Use `kube_get` with kind="pods" across relevant namespaces:
+Use `get_k8s_resource` resourceType="pods" across relevant namespaces:
 - Are any pods in CrashLoopBackOff?
 - Are any pods with restart count > 0 in the last 10 minutes?
 - Are any pods in Pending state for more than 5 minutes?
 
-Use `kube_get` with kind="deployments" to check:
+Use `get_k8s_resource` resourceType="deployments" to check:
 - Are any deployments with 0 ready replicas?
 
 ### 2. Memory Trending
-Use `kube_get` with kind="pods" to check resource requests/limits:
+Use `describe_k8s_resource` resourceType="pods" name=<pod> to check resource requests/limits:
 - Are any pods close to their memory limits?
 - Are pods configured without memory limits?
 
@@ -49,12 +52,12 @@ Use `list_log_entries` with severity>=ERROR filter:
 - Are error rates increasing over the last 15 minutes?
 
 ### 4. Resource Exhaustion
-Use `kube_get` with kind="nodes" to check:
+Use `get_k8s_resource` resourceType="nodes" to check:
 - Are any nodes under memory/disk pressure?
 - Are CPU requests approaching node capacity?
 
 ### 5. Deployment Health
-Use `kube_get` with kind="deployments" and kind="events":
+Use `get_k8s_resource` resourceType="deployments" and `list_k8s_events`:
 - Did any recent deployment NOT reach full availability?
 - Are there rollout failures?
 - Are there image pull errors?
@@ -134,13 +137,15 @@ that can be used to create incidents automatically.
 
 
 def create_anomaly_detector_agent(
-    model: str = "gemini-2.5-flash", tools=None, use_gcp: bool = True,
+    model: str = "gemini-2.5-flash", tools=None, use_gcp: bool = True, gcp_context: str = "",
 ) -> Agent:
     """Create the Anomaly Detector sub-agent."""
     instruction = (
         _ANOMALY_DETECTOR_GCP_INSTRUCTION if use_gcp
         else _ANOMALY_DETECTOR_LOCAL_INSTRUCTION
     )
+    if use_gcp and gcp_context:
+        instruction = f"{instruction}\n\n{gcp_context}"
     return Agent(
         name="anomaly_detector",
         model=model,

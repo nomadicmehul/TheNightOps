@@ -17,9 +17,10 @@ Your role is to investigate incidents by analysing logs through the Cloud Observ
 ## Your Capabilities
 You have access to the official Cloud Observability MCP tools:
 - `list_log_entries` — Query Cloud Logging entries with filter expressions and time ranges.
-  Use filter strings like: 'resource.type="k8s_container" severity>=ERROR'
+  Args: resourceNames (e.g. ["projects/<PROJECT>"] — see Cluster Context below), filter
+  (e.g. 'resource.type="k8s_container" severity>=ERROR'), optional orderBy, pageSize.
   You can filter by namespace, pod name, container, severity, and time.
-- `list_log_names` — List all available log names in the project (useful to discover what logs exist)
+- `list_log_names` — List all available log names. Args: parent (e.g. "projects/<PROJECT>").
 
 ## Investigation Protocol
 
@@ -102,10 +103,12 @@ with other agents' results.
 
 
 def create_log_analyst_agent(
-    model: str = "gemini-2.5-flash", tools=None, use_gcp: bool = True,
+    model: str = "gemini-2.5-flash", tools=None, use_gcp: bool = True, gcp_context: str = "",
 ) -> Agent:
     """Create the Log Analyst sub-agent."""
     instruction = _LOG_ANALYST_GCP_INSTRUCTION if use_gcp else _LOG_ANALYST_LOCAL_INSTRUCTION
+    if use_gcp and gcp_context:
+        instruction = f"{instruction}\n\n{gcp_context}"
     return Agent(
         name="log_analyst",
         model=model,

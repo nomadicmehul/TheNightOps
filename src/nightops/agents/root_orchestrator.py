@@ -163,18 +163,25 @@ Present your final analysis as:
 """
 
 _GCP_TOOL_SECTION = """### GKE MCP Tools (Official Google Cloud)
-- `kube_get` — Get any Kubernetes resource (pods, deployments, events, services, etc.)
-  Usage: specify the resource kind (e.g. "pods", "deployments", "events"), namespace, and optionally a name.
-- `kube_api_resources` — List available Kubernetes API resource types
-- `list_clusters` — List GKE clusters
-- `get_cluster` — Get GKE cluster details
-- `list_node_pools` — List node pools in a cluster
-- `get_node_pool` — Get node pool details
+Every GKE tool call REQUIRES a `parent` argument (see Cluster Context above).
+- `get_k8s_resource` — Get/list Kubernetes resources (like `kubectl get`).
+  Args: parent, resourceType ("pods"|"deployments"|"events"|"services"|"nodes"|"replicasets"|...),
+  optional namespace, name, labelSelector.
+- `describe_k8s_resource` — Detailed description of a resource (like `kubectl describe`).
+  Args: parent, resourceType, name, optional namespace.
+- `list_k8s_events` — Cluster events (like `kubectl events`).
+  Args: parent, optional namespace OR allNamespaces=true, limit.
+- `get_k8s_logs` — Container logs from a pod (like `kubectl logs`).
+  Args: parent, name (pod name), optional namespace, container, previous=true, tail.
+- `get_k8s_rollout_status` — Rollout status. Args: parent, resourceType, name.
+- `get_k8s_cluster_info` / `get_k8s_version` — Cluster endpoint/version info. Args: parent.
+- `list_k8s_api_resources` — List available API resource types. Args: parent.
 
 ### Cloud Observability MCP Tools (Official Google Cloud)
-- `list_log_entries` — Query and list Cloud Logging entries with filter expressions
-  Usage: provide a filter string (e.g. 'resource.type="k8s_container" severity>=ERROR') and time range.
-- `list_log_names` — List available log names in the project"""
+- `list_log_entries` — Query Cloud Logging entries.
+  Args: resourceNames (e.g. ["projects/<PROJECT>"]), filter
+  (e.g. 'resource.type="k8s_container" severity>=ERROR'), optional orderBy, pageSize.
+- `list_log_names` — List available log names. Args: parent (e.g. "projects/<PROJECT>")."""
 
 _LOCAL_TOOL_SECTION = """### Kubernetes MCP Tools (Custom)
 - `get_pod_status` — Get pod status in a namespace
@@ -190,11 +197,11 @@ _LOCAL_TOOL_SECTION = """### Kubernetes MCP Tools (Custom)
 - `get_log_volume_anomalies` — Find log volume anomalies
 - `correlate_logs_by_trace` — Correlate logs by trace ID"""
 
-_GCP_TRIAGE_SECTION = """Use these tools directly:
-- `kube_get` with kind "pods": Check pod health across relevant namespaces
-- `kube_get` with kind "events": Get recent Kubernetes events for anomalies
-- `kube_get` with kind "deployments": Check recent deployment changes
-- `list_log_entries` with severity filter: Search for error patterns in logs"""
+_GCP_TRIAGE_SECTION = """Use these tools directly (ALWAYS include `parent`):
+- `get_k8s_resource` resourceType="pods" (+ namespace): Check pod health/restart counts
+- `list_k8s_events` (+ namespace or allNamespaces=true): Get recent events (OOMKilled, BackOff, ...)
+- `get_k8s_resource` resourceType="deployments": Check recent deployment changes
+- `list_log_entries` with a severity filter: Search for error patterns in logs"""
 
 _LOCAL_TRIAGE_SECTION = """Use these tools directly:
 - `get_pod_status`: Check pod health across relevant namespaces
@@ -203,11 +210,12 @@ _LOCAL_TRIAGE_SECTION = """Use these tools directly:
 - `query_logs`: Search for error patterns in logs
 - `detect_error_patterns`: Find error patterns automatically"""
 
-_GCP_DEEP_INVESTIGATION_SECTION = """Based on Phase 1 findings, perform targeted follow-up:
-- If deployment change detected → `kube_get` with kind "pods" + name to inspect specific pods
-- If error patterns found → `list_log_entries` with trace filter to trace the issue
-- If resource issues → `kube_get` with kind "pods" to check resource requests/limits
-- If OOMKill → `kube_get` kind "events" + `list_log_entries` to confirm and find the cause"""
+_GCP_DEEP_INVESTIGATION_SECTION = """Based on Phase 1 findings, perform targeted
+follow-up (ALWAYS include `parent`):
+- Inspect a specific pod → `describe_k8s_resource` resourceType="pods" name=<pod> namespace=<ns>
+- Container crash/error logs → `get_k8s_logs` name=<pod> namespace=<ns> previous=true
+- Confirm OOMKill → `list_k8s_events` + `get_k8s_logs`
+- Trace error patterns → `list_log_entries` with a refined filter"""
 
 _LOCAL_DEEP_INVESTIGATION_SECTION = """Based on Phase 1 findings, perform targeted follow-up:
 - If deployment change detected → `describe_pod`, `get_pod_logs` on specific pods
@@ -216,10 +224,33 @@ _LOCAL_DEEP_INVESTIGATION_SECTION = """Based on Phase 1 findings, perform target
 - If OOMKill → `get_pod_logs` + `get_events` to confirm and find the cause"""
 
 
-def _build_root_instruction(use_gcp: bool) -> str:
+def _gcp_cluster_context(config: NightOpsConfig) -> str:
+    """Build the cluster-context block injected into GCP-mode agent prompts.
+
+    The official GKE MCP tools require a fully-qualified ``parent`` and the
+    Cloud Logging tools require ``resourceNames``/``parent`` scoped to the
+    project. Supplying these exact values keeps Gemini from guessing.
+    """
+    project = config.gke.project_id or config.cloud_observability.project_id
+    location = config.gke.location
+    cluster = config.gke.cluster
+    parent = f"projects/{project}/locations/{location}/clusters/{cluster}"
+    return (
+        "## Cluster Context (use these EXACT values)\n"
+        f"- For EVERY GKE MCP tool call, pass `parent` = `{parent}`\n"
+        f'- For `list_log_entries`, pass `resourceNames` = ["projects/{project}"]\n'
+        f'- For `list_log_names`, pass `parent` = "projects/{project}"\n'
+        f"- project = {project}, location = {location}, cluster = {cluster}\n"
+    )
+
+
+def _build_root_instruction(use_gcp: bool, gcp_context: str = "") -> str:
     """Build root orchestrator instruction based on MCP mode."""
+    tool_section = _GCP_TOOL_SECTION if use_gcp else _LOCAL_TOOL_SECTION
+    if use_gcp and gcp_context:
+        tool_section = f"{gcp_context}\n{tool_section}"
     return _ROOT_ORCHESTRATOR_BASE.format(
-        tool_section=_GCP_TOOL_SECTION if use_gcp else _LOCAL_TOOL_SECTION,
+        tool_section=tool_section,
         triage_section=_GCP_TRIAGE_SECTION if use_gcp else _LOCAL_TRIAGE_SECTION,
         deep_investigation_section=(
             _GCP_DEEP_INVESTIGATION_SECTION if use_gcp else _LOCAL_DEEP_INVESTIGATION_SECTION
@@ -433,20 +464,24 @@ def create_root_orchestrator(
     logging_tools = toolsets["logging"]
     grafana_tools = toolsets["grafana"]
 
+    # Cluster context (parent/resourceNames) injected into every GCP-mode prompt.
+    gcp_context = _gcp_cluster_context(config) if use_gcp else ""
+
     # Create sub-agents with role-scoped tools.
     # Communication drafter intentionally has no tools (advisory text output only).
     log_analyst = create_log_analyst_agent(
-        model=model, tools=list(logging_tools), use_gcp=use_gcp,
+        model=model, tools=list(logging_tools), use_gcp=use_gcp, gcp_context=gcp_context,
     )
     deployment_correlator = create_deployment_correlator_agent(
-        model=model, tools=list(k8s_tools), use_gcp=use_gcp,
+        model=model, tools=list(k8s_tools), use_gcp=use_gcp, gcp_context=gcp_context,
     )
     runbook_retriever = create_runbook_retriever_agent(
-        model=model, tools=list(k8s_tools + logging_tools + grafana_tools), use_gcp=use_gcp,
+        model=model, tools=list(k8s_tools + logging_tools + grafana_tools),
+        use_gcp=use_gcp, gcp_context=gcp_context,
     )
     communication_drafter = create_communication_drafter_agent(model=model)
     anomaly_detector = create_anomaly_detector_agent(
-        model=model, tools=list(k8s_tools + logging_tools), use_gcp=use_gcp,
+        model=model, tools=list(k8s_tools + logging_tools), use_gcp=use_gcp, gcp_context=gcp_context,
     )
 
     # Build the root orchestrator
@@ -459,7 +494,7 @@ def create_root_orchestrator(
             "proactive anomaly detection, and stakeholder communication "
             "using Kubernetes and Cloud Logging MCP servers."
         ),
-        instruction=_build_root_instruction(use_gcp),
+        instruction=_build_root_instruction(use_gcp, gcp_context),
         sub_agents=[
             log_analyst,
             deployment_correlator,
@@ -467,7 +502,7 @@ def create_root_orchestrator(
             communication_drafter,
             anomaly_detector,
         ],
-        # Root performs Phase-1 triage directly via kube_get + list_log_entries,
+        # Root performs Phase-1 triage directly via get_k8s_resource + list_log_entries,
         # so it needs kubernetes + logging tools only (no send/grafana tools).
         tools=list(k8s_tools + logging_tools),
     )
