@@ -421,16 +421,43 @@ class NightOpsConfig(BaseSettings):
             data["agent"] = agent
         agent.update(overrides)
 
+    @staticmethod
+    def _find_default_config() -> Path | None:
+        """Locate config/nightops.yaml regardless of the current working directory.
+
+        Searches, in order:
+          1. The current working directory (and its parents).
+          2. The repo/package tree, walking up from this file's location.
+
+        This keeps `nightops` working when launched from any directory — the
+        previous behaviour only checked CWD-relative paths, so running outside
+        the repo root silently fell back to an empty config.
+        """
+        relative_names = ["config/nightops.yaml", "nightops.yaml"]
+        search_roots = [Path.cwd(), *Path.cwd().parents]
+        # Walk up from this file (src/nightops/core/config.py) toward the repo root.
+        search_roots += [Path(__file__).resolve(), *Path(__file__).resolve().parents]
+        seen: set[Path] = set()
+        for root in search_roots:
+            if root in seen:
+                continue
+            seen.add(root)
+            for name in relative_names:
+                candidate = root / name
+                if candidate.is_file():
+                    return candidate
+        return None
+
     @classmethod
     def load(cls, config_path: str | Path | None = None) -> NightOpsConfig:
         """Load config from file or use defaults with environment variables."""
         if config_path and Path(config_path).exists():
             return cls.from_yaml(config_path)
 
-        # Try default locations
-        for default_path in ["config/nightops.yaml", "nightops.yaml"]:
-            if Path(default_path).exists():
-                return cls.from_yaml(default_path)
+        # Try default locations (CWD-relative first, then anchored to the repo).
+        found = cls._find_default_config()
+        if found is not None:
+            return cls.from_yaml(found)
 
         # Fall back to environment variables and defaults
         project_id = os.getenv("GCP_PROJECT_ID", "")
