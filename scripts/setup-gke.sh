@@ -134,6 +134,7 @@ ROLES=(
     "roles/container.viewer"      # Read GKE resources
     "roles/container.developer"   # Manage GKE workloads (for remediation)
     "roles/mcp.toolUser"          # Access GCP MCP servers (GKE MCP, Logging MCP)
+    "roles/aiplatform.user"       # Call Gemini on Vertex AI (deployed pod uses this SA via Workload Identity)
 )
 
 for role in "${ROLES[@]}"; do

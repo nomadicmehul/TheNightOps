@@ -217,8 +217,15 @@ IMAGE="${AGENT_IMAGE}" DEMO_IMAGE="${DEMO_IMAGE}" "${SCRIPT_DIR}/generate-manife
 banner "Step 4/7: Deploying NightOps Agent"
 
 step "Applying agent manifests..."
-kubectl apply -f "${PROJECT_ROOT}/deploy/generated/" 2>/dev/null
-ok "Agent stack deployed to 'nightops' namespace"
+# Skip mcp-servers.yaml: the custom self-hosted MCP servers are disabled in GCP
+# mode (the agent uses the official Google Cloud MCP), so deploying them just
+# leaves idle/erroring pods. Apply each other top-level manifest (one kubectl
+# call per file — `kubectl apply -f a b c` misparses multiple paths).
+for manifest in "${PROJECT_ROOT}"/deploy/generated/*.yaml; do
+    [[ "$(basename "${manifest}")" == "mcp-servers.yaml" ]] && continue
+    kubectl apply -f "${manifest}"
+done
+ok "Agent stack deployed to 'nightops' namespace (custom MCP servers skipped — GCP mode)"
 
 wait_for_pods "nightops" "app.kubernetes.io/name=nightops-agent" 120
 

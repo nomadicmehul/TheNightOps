@@ -78,6 +78,11 @@ metadata:
     app.kubernetes.io/component: agent
 spec:
   replicas: 1
+  # Recreate (not RollingUpdate): the agent mounts a ReadWriteOnce PVC, so a new
+  # pod can't attach the volume until the old one is gone. RollingUpdate would
+  # deadlock (Multi-Attach error) on every restart/redeploy.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app.kubernetes.io/name: nightops-agent
