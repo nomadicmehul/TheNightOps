@@ -54,7 +54,7 @@ while [[ $# -gt 0 ]]; do
             echo "  --help, -h         Show this help"
             echo ""
             echo "Scenarios:"
-            echo "  1  OOMKill            (demo-api)       300M alloc vs 100Mi limit"
+            echo "  1  OOMKill            (cache-api)      300M alloc vs 100Mi limit"
             echo "  2  Config drift       (payment-api)    missing env -> exit 1 -> CrashLoopBackOff"
             echo "  3  Bad image          (inventory-api)  nonexistent tag -> ImagePullBackOff"
             echo "  4  Failed scheduling  (report-batch)   64 CPU request -> Pending"
@@ -74,7 +74,7 @@ fi
 
 # ── Scenario Definitions (match standalone-scenarios.yaml) ──────────
 SCENARIO_NAMES=(
-    "OOMKill (demo-api)"
+    "OOMKill (cache-api)"
     "Config drift (payment-api)"
     "Bad image (inventory-api)"
     "Failed scheduling (report-batch)"
@@ -82,7 +82,7 @@ SCENARIO_NAMES=(
     "Cascading / missing secret (checkout-api + cart-api)"
 )
 SCENARIO_INCIDENTS=(
-    "Pods in the nightops-demo namespace (deployment demo-api) are being OOMKilled and entering CrashLoopBackOff. Investigate the root cause and recommend remediation."
+    "Pods in the nightops-demo namespace (deployment cache-api) are being OOMKilled and entering CrashLoopBackOff. Investigate the root cause and recommend remediation."
     "Deployment payment-api in namespace nightops-demo is in CrashLoopBackOff: pods start then exit with an error shortly after launch. Investigate the root cause and recommend remediation."
     "Deployment inventory-api in namespace nightops-demo has pods that never reach Ready and never start running. Investigate the root cause and recommend remediation."
     "Deployment report-batch in namespace nightops-demo has a pod stuck in Pending that never schedules onto a node. Investigate the root cause and recommend remediation."

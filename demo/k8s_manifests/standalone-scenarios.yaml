@@ -17,21 +17,23 @@ metadata:
     app.kubernetes.io/part-of: nightops
 ---
 # Scenario 1 — OOMKill: allocates 300M but limited to 100Mi -> OOMKilled -> CrashLoopBackOff
+# NOTE: named cache-api (NOT demo-api) so the test sweep never overwrites the
+# image-based conference demo app (deploy/.../demo-app.yaml also owns demo-api).
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: demo-api
+  name: cache-api
   namespace: nightops-demo
-  labels: { app: demo-api }
+  labels: { app: cache-api }
   annotations: { nightops.io/scenario: "oom-kill" }
 spec:
   replicas: 3
-  selector: { matchLabels: { app: demo-api } }
+  selector: { matchLabels: { app: cache-api } }
   template:
-    metadata: { labels: { app: demo-api } }
+    metadata: { labels: { app: cache-api } }
     spec:
       containers:
-        - name: demo-api
+        - name: cache-api
           image: polinux/stress
           command: ["stress"]
           args: ["--vm", "1", "--vm-bytes", "300M", "--vm-hang", "0"]
