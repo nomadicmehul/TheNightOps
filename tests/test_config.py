@@ -13,7 +13,7 @@ from nightops.core.config import NightOpsConfig
 def test_default_config():
     """Test that default configuration loads without errors."""
     config = NightOpsConfig()
-    assert config.agent.model == "gemini-2.5-flash"
+    assert config.agent.model == "gemini-3.1-pro-preview"
     # Official Google Cloud MCP servers
     assert config.cloud_observability.type == "official"
     assert config.gke.type == "official"

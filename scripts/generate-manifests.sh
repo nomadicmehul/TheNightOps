@@ -35,9 +35,17 @@ else
 fi
 
 # ── Validate required variables ───────────────────────────────────
+# Gemini auth needs EITHER an AI Studio key (GOOGLE_API_KEY) OR Vertex AI
+# (GOOGLE_GENAI_USE_VERTEXAI=TRUE, which authenticates via Workload Identity).
 MISSING=()
-[[ -z "${GOOGLE_API_KEY:-}" ]] && MISSING+=("GOOGLE_API_KEY")
 [[ -z "${GCP_PROJECT_ID:-}" ]] && MISSING+=("GCP_PROJECT_ID")
+case "${GOOGLE_GENAI_USE_VERTEXAI:-}" in
+    TRUE|true|True|1|yes|YES) USE_VERTEX=true ;;
+    *) USE_VERTEX=false ;;
+esac
+if [[ -z "${GOOGLE_API_KEY:-}" && "${USE_VERTEX}" != "true" ]]; then
+    MISSING+=("GOOGLE_API_KEY (or set GOOGLE_GENAI_USE_VERTEXAI=TRUE to use Vertex AI)")
+fi
 
 if [[ ${#MISSING[@]} -gt 0 ]]; then
     echo ""
@@ -58,6 +66,13 @@ REGION="${GCP_REGION:-us-central1}"
 # Container images — default to Artifact Registry paths
 IMAGE="${IMAGE:-${REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/nightops/nightops-agent:latest}"
 DEMO_IMAGE="${DEMO_IMAGE:-${REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/nightops/nightops-demo-api:latest}"
+
+# Gemini auth — AI Studio key and/or Vertex AI settings
+GOOGLE_API_KEY="${GOOGLE_API_KEY:-}"
+GOOGLE_GENAI_USE_VERTEXAI="${GOOGLE_GENAI_USE_VERTEXAI:-}"
+GOOGLE_CLOUD_PROJECT="${GOOGLE_CLOUD_PROJECT:-${GCP_PROJECT_ID}}"
+GOOGLE_CLOUD_LOCATION="${GOOGLE_CLOUD_LOCATION:-${REGION}}"
+NIGHTOPS_MODEL="${NIGHTOPS_MODEL:-}"
 
 # Optional secrets — default to empty
 SLACK_BOT_TOKEN="${SLACK_BOT_TOKEN:-}"
@@ -116,6 +131,10 @@ metadata:
 type: Opaque
 stringData:
   GOOGLE_API_KEY: "${GOOGLE_API_KEY}"
+  GOOGLE_GENAI_USE_VERTEXAI: "${GOOGLE_GENAI_USE_VERTEXAI}"
+  GOOGLE_CLOUD_PROJECT: "${GOOGLE_CLOUD_PROJECT}"
+  GOOGLE_CLOUD_LOCATION: "${GOOGLE_CLOUD_LOCATION}"
+  NIGHTOPS_MODEL: "${NIGHTOPS_MODEL}"
   GCP_PROJECT_ID: "${GCP_PROJECT_ID}"
   GKE_CLUSTER_NAME: "${GKE_CLUSTER_NAME}"
   GKE_CLUSTER_LOCATION: "${GKE_CLUSTER_LOCATION}"

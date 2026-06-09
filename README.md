@@ -143,7 +143,7 @@ Multi-agent architecture using [MCP (Model Context Protocol)](https://modelconte
 | **Setup time** | 0 min (just kubectl) | 15-30 min (IAM, MCP enablement) |
 | **ADK patterns** | Single agent + function tools | Multi-agent orchestration + MCP |
 | **Dashboard** | Full support | Full support |
-| **Remediation** | Investigation + RCA only (read-only) | Investigation + auto-remediation |
+| **Remediation** | RCA + policy-evaluated suggestions (advisory) | RCA + policy-evaluated suggestions (advisory) |
 
 ### Project Structure
 
@@ -439,6 +439,10 @@ Remediation Policy Engine checks action level:
   Level 1 (Env-gated):    Auto in dev/staging, human approval in production
   Level 2 (Always ask):   Rollback, scale down, revert config
   Level 3 (Blocked):      Delete namespace, drain node — never allowed
+
+  Note: the engine classifies each suggested action (auto-approve /
+  needs-approval / blocked) as a recommendation. NightOps does not
+  execute remediations — actions are surfaced for a human to run.
 ```
 
 ---

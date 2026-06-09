@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-import pytest
-
-from nightops.agents.log_analyst import create_log_analyst_agent
-from nightops.agents.deployment_correlator import create_deployment_correlator_agent
-from nightops.agents.runbook_retriever import create_runbook_retriever_agent
 from nightops.agents.communication_drafter import create_communication_drafter_agent
+from nightops.agents.deployment_correlator import create_deployment_correlator_agent
+from nightops.agents.log_analyst import create_log_analyst_agent
+from nightops.agents.runbook_retriever import create_runbook_retriever_agent
 
 
 def test_log_analyst_agent_creation():
@@ -29,7 +27,8 @@ def test_runbook_retriever_agent_creation():
     """Test that runbook retriever agent is created correctly."""
     agent = create_runbook_retriever_agent()
     assert agent.name == "runbook_retriever"
-    assert "alerts" in agent.description.lower() or "runbook" in agent.description.lower()
+    desc = agent.description.lower()
+    assert "incident" in desc or "historical" in desc or "resolution" in desc
 
 
 def test_communication_drafter_agent_creation():

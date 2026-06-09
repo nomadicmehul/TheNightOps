@@ -7,7 +7,7 @@ name = "nightops"
 version = "0.1.0b1"
 description = "Autonomous SRE Agent built on Google ADK and Remote MCP — with proactive detection, incident memory, and graduated remediation"
 readme = "README.md"
-license = "Apache-2.0 WITH Commons-Clause-1.0"
+license = { text = "Apache-2.0 WITH Commons-Clause-1.0" }
 requires-python = ">=3.11"
 authors = [
     { name = "TheNightOps Contributors" },
@@ -57,8 +57,12 @@ demo = [
 [project.scripts]
 nightops = "nightops.cli:app"
 
-[tool.hatch.build.targets.wheel.force-include]
-"src" = "nightops"
+# Canonical src layout: the package lives at src/nightops and imports as
+# `nightops`. This lets `pip install -e .` create a proper editable redirect
+# that tracks source edits live (force-include / prefix-rewrite layouts force
+# hatchling to copy files into site-packages, so edits are silently ignored).
+[tool.hatch.build.targets.wheel]
+packages = ["src/nightops"]
 
 [tool.ruff]
 target-version = "py311"

@@ -1,229 +1,180 @@
 #!/usr/bin/env bash
-# TheNightOps — Sequential Scenario Test Runner
+# TheNightOps — Scenario Test Runner
 #
-# Runs all 5 demo scenarios against the live GKE cluster using simple mode,
-# then verifies pod health, events, and resource usage.
+# Deploys the standalone demo scenarios (public images, no build) and runs the
+# agent against each in Plan A (MCP multi-agent), Plan B (--simple kubectl), or both.
 #
 # Usage:
-#   ./scripts/test-scenarios.sh                  # Run all 5 scenarios + verification
-#   ./scripts/test-scenarios.sh --scenario 3     # Run only scenario 3
-#   ./scripts/test-scenarios.sh --verify-only    # Skip investigations, just verify
-#   ./scripts/test-scenarios.sh --help           # Show usage
+#   ./scripts/test-scenarios.sh --deploy                 # deploy workloads + run all 6 in both plans
+#   ./scripts/test-scenarios.sh                          # run all 6 in both plans (assumes deployed)
+#   ./scripts/test-scenarios.sh --plan a                 # Plan A only
+#   ./scripts/test-scenarios.sh --plan b --scenario 3    # Plan B, scenario 3 only
+#   ./scripts/test-scenarios.sh --verify-only            # just print cluster state
+#   ./scripts/test-scenarios.sh --help
 #
 # Prerequisites:
-#   - nightops CLI installed (pip install -e .)
-#   - kubectl configured for the target GKE cluster
-#   - nightops-demo namespace exists with demo workloads
+#   - nightops CLI installed (pip install -e ".[dev]")
+#   - kubectl configured for the target GKE cluster (export USE_GKE_GCLOUD_AUTH_PLUGIN=True)
+#   - Gemini auth configured in config/.env (AI Studio key or Vertex AI)
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+MANIFEST="${PROJECT_ROOT}/demo/k8s_manifests/standalone-scenarios.yaml"
+
+# kubectl against GKE needs the auth plugin.
+export USE_GKE_GCLOUD_AUTH_PLUGIN=True
 
 # ── Colors ──────────────────────────────────────────────────────────
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
-BOLD='\033[1m'
-DIM='\033[2m'
-RESET='\033[0m'
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
+BLUE='\033[0;34m'; CYAN='\033[0;36m'; BOLD='\033[1m'; DIM='\033[2m'; RESET='\033[0m'
 
 # ── Defaults ────────────────────────────────────────────────────────
 VERIFY_ONLY=false
+DEPLOY=false
+PLAN="both"          # a | b | both
 SCENARIO_NUM=""
 
 # ── Parse Arguments ─────────────────────────────────────────────────
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --verify-only)
-            VERIFY_ONLY=true
-            shift
-            ;;
-        --scenario|-s)
-            SCENARIO_NUM="$2"
-            shift 2
-            ;;
+        --deploy) DEPLOY=true; shift ;;
+        --verify-only) VERIFY_ONLY=true; shift ;;
+        --plan) PLAN="$2"; shift 2 ;;
+        --scenario|-s) SCENARIO_NUM="$2"; shift 2 ;;
         --help|-h)
             echo "Usage: ./scripts/test-scenarios.sh [OPTIONS]"
             echo ""
             echo "Options:"
-            echo "  --scenario, -s N   Run only scenario N (1-5)"
-            echo "  --verify-only      Skip investigations, run verification only"
-            echo "  --help, -h         Show this help message"
+            echo "  --deploy           Apply demo/k8s_manifests/standalone-scenarios.yaml first"
+            echo "  --plan a|b|both    Plan A (MCP), Plan B (--simple), or both (default: both)"
+            echo "  --scenario, -s N   Run only scenario N (1-6)"
+            echo "  --verify-only      Skip investigations, print cluster state only"
+            echo "  --help, -h         Show this help"
             echo ""
             echo "Scenarios:"
-            echo "  1  OOMKilled pods in nightops-demo namespace"
-            echo "  2  CPU spike on demo-api service"
-            echo "  3  Cascading failure / high error rate"
-            echo "  4  Config drift causing 500 errors"
-            echo "  5  Full cluster health check"
-            exit 0
-            ;;
-        *)
-            echo -e "${RED}Error: Unknown option '$1'${RESET}"
-            echo "Run with --help for usage."
-            exit 1
-            ;;
+            echo "  1  OOMKill            (cache-api)      300M alloc vs 100Mi limit"
+            echo "  2  Config drift       (payment-api)    missing env -> exit 1 -> CrashLoopBackOff"
+            echo "  3  Bad image          (inventory-api)  nonexistent tag -> ImagePullBackOff"
+            echo "  4  Failed scheduling  (report-batch)   64 CPU request -> Pending"
+            echo "  5  Readiness probe    (frontend-web)   wrong probe port -> never Ready"
+            echo "  6  Cascading          (checkout/cart)  shared missing Secret"
+            exit 0 ;;
+        *) echo -e "${RED}Error: Unknown option '$1'${RESET}"; echo "Run with --help for usage."; exit 1 ;;
     esac
 done
 
-# ── Validate --scenario input ──────────────────────────────────────
-if [[ -n "${SCENARIO_NUM}" ]] && ! [[ "${SCENARIO_NUM}" =~ ^[1-5]$ ]]; then
-    echo -e "${RED}Error: --scenario must be a number between 1 and 5${RESET}"
-    exit 1
+if [[ -n "${SCENARIO_NUM}" ]] && ! [[ "${SCENARIO_NUM}" =~ ^[1-6]$ ]]; then
+    echo -e "${RED}Error: --scenario must be 1-6${RESET}"; exit 1
+fi
+if [[ "${PLAN}" != "a" && "${PLAN}" != "b" && "${PLAN}" != "both" ]]; then
+    echo -e "${RED}Error: --plan must be a, b, or both${RESET}"; exit 1
 fi
 
-# ── Scenario Definitions ───────────────────────────────────────────
+# ── Scenario Definitions (match standalone-scenarios.yaml) ──────────
 SCENARIO_NAMES=(
-    "OOMKilled Pods"
-    "CPU Spike"
-    "Cascading Failure"
-    "Config Drift"
-    "Cluster Health Check"
+    "OOMKill (cache-api)"
+    "Config drift (payment-api)"
+    "Bad image (inventory-api)"
+    "Failed scheduling (report-batch)"
+    "Readiness probe (frontend-web)"
+    "Cascading / missing secret (checkout-api + cart-api)"
 )
-
 SCENARIO_INCIDENTS=(
-    "Pods in the nightops-demo namespace are being OOMKilled. Investigate memory usage, check container resource limits, and identify which pods are affected. Recommend fixes."
-    "The demo-api service in nightops-demo namespace is experiencing a CPU spike. Investigate CPU usage across pods, check for hot loops or resource contention, and suggest remediation."
-    "High error rate detected across services in nightops-demo namespace — possible cascading failure. Investigate inter-service dependencies, check for failing health probes, and trace the failure chain."
-    "The demo-api service is returning HTTP 500 errors after a recent config change. Investigate recent ConfigMap or Secret changes in nightops-demo namespace, check environment variables, and identify the config drift."
-    "Perform a full health check of the nightops-demo namespace. Check all pod statuses, pending pods, restart counts, resource pressure, recent warning events, and overall cluster health."
+    "Pods in the nightops-demo namespace (deployment cache-api) are being OOMKilled and entering CrashLoopBackOff. Investigate the root cause and recommend remediation."
+    "Deployment payment-api in namespace nightops-demo is in CrashLoopBackOff: pods start then exit with an error shortly after launch. Investigate the root cause and recommend remediation."
+    "Deployment inventory-api in namespace nightops-demo has pods that never reach Ready and never start running. Investigate the root cause and recommend remediation."
+    "Deployment report-batch in namespace nightops-demo has a pod stuck in Pending that never schedules onto a node. Investigate the root cause and recommend remediation."
+    "Pods for deployment frontend-web in namespace nightops-demo are Running but never become Ready (0/1). Investigate the root cause and recommend remediation."
+    "Multiple payment-tier services (checkout-api and cart-api) in namespace nightops-demo are failing to start at the same time. Investigate the root cause, determine if they share a common cause, and recommend remediation."
 )
 
-# ── Helper Functions ────────────────────────────────────────────────
-separator() {
-    echo ""
-    echo -e "${DIM}$(printf '%.0s─' {1..80})${RESET}"
-    echo ""
-}
-
+# ── Helpers ─────────────────────────────────────────────────────────
+separator() { echo ""; echo -e "${DIM}$(printf '%.0s─' {1..80})${RESET}"; echo ""; }
 banner() {
-    local text="$1"
     echo ""
     echo -e "${BOLD}${BLUE}╔$(printf '%.0s═' {1..78})╗${RESET}"
-    printf "${BOLD}${BLUE}║${RESET} ${BOLD}%-76s ${BLUE}║${RESET}\n" "${text}"
+    printf "${BOLD}${BLUE}║${RESET} ${BOLD}%-76s ${BLUE}║${RESET}\n" "$1"
     echo -e "${BOLD}${BLUE}╚$(printf '%.0s═' {1..78})╝${RESET}"
     echo ""
 }
+status_msg() { echo -e "$1[$2]${RESET} $3"; }
 
-status_msg() {
-    local color="$1"
-    local label="$2"
-    local msg="$3"
-    echo -e "${color}[${label}]${RESET} ${msg}"
+run_one_plan() {
+    local plan="$1" incident="$2" flag label start end
+    if [[ "${plan}" == "a" ]]; then flag=""; label="Plan A (MCP multi-agent)";
+    else flag="--simple"; label="Plan B (simple kubectl)"; fi
+
+    status_msg "${CYAN}" "START" "${label}"
+    start=$(date +%s)
+    # shellcheck disable=SC2086
+    if nightops agent run ${flag} --incident "${incident}"; then
+        end=$(date +%s)
+        status_msg "${GREEN}" "DONE" "${label} completed in $((end - start))s"
+    else
+        end=$(date +%s)
+        status_msg "${YELLOW}" "WARN" "${label} exited non-zero after $((end - start))s"
+    fi
 }
 
 run_scenario() {
-    local num="$1"
-    local idx=$((num - 1))
-    local name="${SCENARIO_NAMES[$idx]}"
-    local incident="${SCENARIO_INCIDENTS[$idx]}"
-    local start_time end_time duration
+    local num="$1" idx=$(( $1 - 1 ))
+    banner "Scenario ${num}/6: ${SCENARIO_NAMES[$idx]}"
+    echo -e "${DIM}Incident: ${SCENARIO_INCIDENTS[$idx]}${RESET}"; echo ""
+    if [[ "${PLAN}" == "a" || "${PLAN}" == "both" ]]; then run_one_plan a "${SCENARIO_INCIDENTS[$idx]}"; echo ""; fi
+    if [[ "${PLAN}" == "b" || "${PLAN}" == "both" ]]; then run_one_plan b "${SCENARIO_INCIDENTS[$idx]}"; fi
+    separator
+}
 
-    banner "Scenario ${num}/5: ${name}"
-
-    status_msg "${CYAN}" "START" "Investigating: ${name}"
-    echo -e "${DIM}Incident: ${incident}${RESET}"
+deploy_scenarios() {
+    banner "Deploying standalone scenarios"
+    kubectl apply -f "${MANIFEST}"
     echo ""
-
-    start_time=$(date +%s)
-
-    if nightops agent run --simple --incident "${incident}"; then
-        end_time=$(date +%s)
-        duration=$((end_time - start_time))
-        echo ""
-        status_msg "${GREEN}" "DONE" "Scenario ${num} completed in ${duration}s"
-    else
-        end_time=$(date +%s)
-        duration=$((end_time - start_time))
-        echo ""
-        status_msg "${YELLOW}" "WARN" "Scenario ${num} exited with non-zero status after ${duration}s"
-    fi
-
+    status_msg "${CYAN}" "WAIT" "Letting workloads reach their failure states (~30s)..."
+    sleep 30
+    kubectl get pods -n nightops-demo
     separator
 }
 
 run_verification() {
     banner "Verification: Cluster State"
-
-    # Pod health across all namespaces
-    status_msg "${CYAN}" "CHECK" "Pod status (all namespaces)"
-    echo ""
-    kubectl get pods --all-namespaces --no-headers 2>/dev/null | \
-        awk '{printf "  %-30s %-40s %-12s %s\n", $1, $2, $3, $4}' || \
-        status_msg "${YELLOW}" "SKIP" "kubectl get pods failed (cluster not reachable?)"
-    echo ""
-
+    status_msg "${CYAN}" "CHECK" "Pods in nightops-demo"; echo ""
+    kubectl get pods -n nightops-demo -o wide 2>/dev/null || status_msg "${YELLOW}" "SKIP" "kubectl get pods failed"
     separator
-
-    # Recent events in nightops-demo
-    status_msg "${CYAN}" "CHECK" "Recent events in nightops-demo namespace"
-    echo ""
-    kubectl get events -n nightops-demo --sort-by='.lastTimestamp' 2>/dev/null | tail -20 || \
-        status_msg "${YELLOW}" "SKIP" "kubectl get events failed"
-    echo ""
-
-    separator
-
-    # Resource usage
-    status_msg "${CYAN}" "CHECK" "Resource usage in nightops-demo namespace"
-    echo ""
-    kubectl top pods -n nightops-demo 2>/dev/null || \
-        status_msg "${YELLOW}" "SKIP" "kubectl top pods failed (metrics-server not available?)"
+    status_msg "${CYAN}" "CHECK" "Recent events in nightops-demo"; echo ""
+    kubectl get events -n nightops-demo --sort-by='.lastTimestamp' 2>/dev/null | tail -20 || status_msg "${YELLOW}" "SKIP" "kubectl get events failed"
     echo ""
 }
 
-# ── Virtual Environment ────────────────────────────────────────────
+# ── Virtualenv ──────────────────────────────────────────────────────
 cd "${PROJECT_ROOT}"
+if [[ -d ".venv" ]]; then source .venv/bin/activate
+elif [[ -d "venv" ]]; then source venv/bin/activate
+else status_msg "${YELLOW}" "WARN" "No virtualenv found — using system Python"; fi
 
-if [[ -d ".venv" ]]; then
-    # shellcheck disable=SC1091
-    source .venv/bin/activate
-elif [[ -d "venv" ]]; then
-    # shellcheck disable=SC1091
-    source venv/bin/activate
-else
-    status_msg "${YELLOW}" "WARN" "No virtual environment found — using system Python"
-fi
-
-# ── Verify Prerequisites ───────────────────────────────────────────
-if ! command -v nightops &>/dev/null; then
-    echo -e "${RED}Error: 'nightops' CLI not found. Run: pip install -e .${RESET}"
-    exit 1
-fi
-
-if ! command -v kubectl &>/dev/null; then
-    echo -e "${RED}Error: 'kubectl' not found. Install it first.${RESET}"
-    exit 1
-fi
+command -v nightops &>/dev/null || { echo -e "${RED}Error: 'nightops' not found. Run: pip install -e \".[dev]\"${RESET}"; exit 1; }
+command -v kubectl &>/dev/null || { echo -e "${RED}Error: 'kubectl' not found.${RESET}"; exit 1; }
 
 # ── Main ────────────────────────────────────────────────────────────
 banner "TheNightOps — Scenario Test Runner"
-echo -e "  ${BOLD}Date:${RESET}    $(date '+%Y-%m-%d %H:%M:%S %Z')"
 echo -e "  ${BOLD}Cluster:${RESET} $(kubectl config current-context 2>/dev/null || echo 'unknown')"
-echo -e "  ${BOLD}Mode:${RESET}    $(if ${VERIFY_ONLY}; then echo 'Verify only'; elif [[ -n "${SCENARIO_NUM}" ]]; then echo "Scenario ${SCENARIO_NUM} only"; else echo 'All scenarios'; fi)"
+echo -e "  ${BOLD}Plan:${RESET}    ${PLAN}"
+echo -e "  ${BOLD}Mode:${RESET}    $(if ${VERIFY_ONLY}; then echo 'verify only'; elif [[ -n "${SCENARIO_NUM}" ]]; then echo "scenario ${SCENARIO_NUM}"; else echo 'all scenarios'; fi)"
 echo ""
 
 TOTAL_START=$(date +%s)
+${DEPLOY} && deploy_scenarios
 
 if [[ "${VERIFY_ONLY}" == "true" ]]; then
     run_verification
 elif [[ -n "${SCENARIO_NUM}" ]]; then
-    run_scenario "${SCENARIO_NUM}"
-    separator
-    run_verification
+    run_scenario "${SCENARIO_NUM}"; run_verification
 else
-    for i in 1 2 3 4 5; do
-        run_scenario "${i}"
-    done
+    for i in 1 2 3 4 5 6; do run_scenario "${i}"; done
     run_verification
 fi
 
-TOTAL_END=$(date +%s)
-TOTAL_DURATION=$((TOTAL_END - TOTAL_START))
-
 separator
-status_msg "${GREEN}" "COMPLETE" "All tasks finished in ${TOTAL_DURATION}s"
+status_msg "${GREEN}" "COMPLETE" "Finished in $(( $(date +%s) - TOTAL_START ))s"
 echo ""

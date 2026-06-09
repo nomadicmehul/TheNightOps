@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
-
-import pytest
+from datetime import UTC, datetime, timedelta
 
 from nightops.core.models import (
     AlertGroup,
@@ -14,16 +12,13 @@ from nightops.core.models import (
     ImpactSummary,
     Incident,
     IncidentRecord,
-    IncidentStatus,
     Investigation,
     InvestigationMetrics,
     RemediationAction,
     RemediationPolicy,
     Severity,
-    SimilarIncident,
     WebhookAlert,
 )
-
 
 # ── New Model Tests ──────────────────────────────────────────────
 
@@ -250,7 +245,7 @@ class TestAlertDeduplicator:
 
 class TestIncidentMemory:
     def _make_investigation(self, incident_id: str, title: str, service: str, root_cause: str) -> Investigation:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         return Investigation(
             incident=Incident(
                 id=incident_id,
@@ -426,7 +421,7 @@ policies:
 
 class TestMetricsTracker:
     def _make_investigation(self) -> Investigation:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         return Investigation(
             incident=Incident(
                 id="INC-001",
@@ -535,8 +530,8 @@ class TestConfigV2:
     def test_supported_models(self):
         from nightops.core.config import SUPPORTED_MODELS
 
-        assert "gemini-3.1-pro" in SUPPORTED_MODELS
-        assert "gemini-3-flash" in SUPPORTED_MODELS
+        assert "gemini-3.1-pro-preview" in SUPPORTED_MODELS
+        assert "gemini-3-flash-preview" in SUPPORTED_MODELS
         assert "gemini-2.5-flash" in SUPPORTED_MODELS
 
     def test_webhook_config_defaults(self):

@@ -36,6 +36,34 @@ echo "║ SA:        ${SA_EMAIL}"
 echo "╚═══════════════════════════════════════════════╝"
 echo ""
 
+# ── Preflight (fail fast before ~15 min of cluster creation) ───
+echo "→ Preflight checks..."
+command -v gcloud >/dev/null || { echo "  ✗ gcloud not found — install the Google Cloud SDK."; exit 1; }
+command -v kubectl >/dev/null || { echo "  ✗ kubectl not found — 'gcloud components install kubectl'."; exit 1; }
+
+if [[ -z "$(gcloud auth list --filter=status:ACTIVE --format='value(account)' 2>/dev/null)" ]]; then
+    echo "  ✗ No active gcloud account. Run: gcloud auth login"; exit 1
+fi
+if ! gcloud auth application-default print-access-token >/dev/null 2>&1; then
+    echo "  ✗ Application Default Credentials missing. Run: gcloud auth application-default login"; exit 1
+fi
+
+BILLING="$(gcloud beta billing projects describe "${PROJECT_ID}" --format='value(billingEnabled)' 2>/dev/null || echo unknown)"
+if [[ "${BILLING}" == "False" ]]; then
+    echo "  ✗ Billing is not enabled on project '${PROJECT_ID}'. Enable it before creating a cluster."; exit 1
+elif [[ "${BILLING}" == "unknown" ]]; then
+    echo "  ⚠ Could not verify billing (try 'gcloud components install beta'). Continuing."
+fi
+
+# kubectl against GKE needs the auth plugin; install it now so the kubectl
+# steps later in THIS script don't fail with 'gke-gcloud-auth-plugin not found'.
+export USE_GKE_GCLOUD_AUTH_PLUGIN=True
+if ! gke-gcloud-auth-plugin --version >/dev/null 2>&1; then
+    echo "  Installing gke-gcloud-auth-plugin..."
+    gcloud components install gke-gcloud-auth-plugin --quiet
+fi
+echo "  ✓ Preflight passed (auth, ADC, billing, gke-gcloud-auth-plugin)"
+
 # ── Enable Required APIs ───────────────────────────────────────
 echo "→ Enabling required GCP APIs..."
 gcloud services enable \
@@ -49,27 +77,11 @@ gcloud services enable \
     --project="${PROJECT_ID}"
 echo "  ✓ APIs enabled"
 
-# ── Enable MCP for GKE and Cloud Logging ─────────────────────
-echo ""
-echo "→ Enabling MCP (Model Context Protocol) on GCP services..."
-
-# GKE MCP — required for the agent to query K8s resources via MCP
-echo "  Enabling GKE MCP (container.googleapis.com)..."
-if gcloud beta services mcp enable container.googleapis.com --project="${PROJECT_ID}" 2>/dev/null; then
-    echo "  ✓ GKE MCP enabled"
-else
-    echo "  ⚠ GKE MCP enable failed (may need 'gcloud components update' or beta access)"
-    echo "    Try manually: gcloud beta services mcp enable container.googleapis.com --project=${PROJECT_ID}"
-fi
-
-# Cloud Logging MCP — required for log analysis via MCP
-echo "  Enabling Cloud Logging MCP (logging.googleapis.com)..."
-if gcloud beta services mcp enable logging.googleapis.com --project="${PROJECT_ID}" 2>/dev/null; then
-    echo "  ✓ Cloud Logging MCP enabled"
-else
-    echo "  ⚠ Cloud Logging MCP enable failed"
-    echo "    Try manually: gcloud beta services mcp enable logging.googleapis.com --project=${PROJECT_ID}"
-fi
+# ── Official Google Cloud MCP servers ────────────────────────
+# No "enable" step is required. The GKE and Cloud Observability MCP endpoints
+# (container.googleapis.com/mcp, logging.googleapis.com/mcp) authenticate via
+# Application Default Credentials + the roles/mcp.toolUser binding granted below.
+# (There is no `gcloud beta services mcp enable` subcommand.)
 
 # ── Create GKE Cluster with Workload Identity ─────────────────
 echo ""
@@ -122,15 +134,20 @@ ROLES=(
     "roles/container.viewer"      # Read GKE resources
     "roles/container.developer"   # Manage GKE workloads (for remediation)
     "roles/mcp.toolUser"          # Access GCP MCP servers (GKE MCP, Logging MCP)
+    "roles/aiplatform.user"       # Call Gemini on Vertex AI (deployed pod uses this SA via Workload Identity)
 )
 
 for role in "${ROLES[@]}"; do
-    gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
+    # Suppress only the noisy policy dump on stdout; let real errors surface on stderr.
+    if gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
         --member="serviceAccount:${SA_EMAIL}" \
         --role="${role}" \
         --condition=None \
-        --quiet 2>/dev/null
-    echo "  ✓ ${role}"
+        --quiet >/dev/null; then
+        echo "  ✓ ${role}"
+    else
+        echo "  ✗ Failed to bind ${role}"; exit 1
+    fi
 done
 
 # ── Bind Workload Identity ─────────────────────────────────────
@@ -148,7 +165,7 @@ gcloud iam service-accounts add-iam-policy-binding "${SA_EMAIL}" \
     --project="${PROJECT_ID}" \
     --role="roles/iam.workloadIdentityUser" \
     --member="serviceAccount:${PROJECT_ID}.svc.id.goog[nightops/nightops-agent]" \
-    --quiet 2>/dev/null
+    --quiet >/dev/null
 
 kubectl annotate serviceaccount nightops-agent \
     -n nightops \
@@ -166,7 +183,7 @@ if [[ -n "${CURRENT_USER}" ]]; then
         --member="user:${CURRENT_USER}" \
         --role="roles/mcp.toolUser" \
         --condition=None \
-        --quiet 2>/dev/null
+        --quiet >/dev/null
     echo "  ✓ roles/mcp.toolUser granted to ${CURRENT_USER}"
 else
     echo "  ⚠ Could not determine current gcloud user"
@@ -193,13 +210,29 @@ kubectl get nodes
 echo ""
 echo "  ✓ Cluster is ready!"
 
-# ── Generate Manifests ────────────────────────────────────────
+# ── Gemini auth reminder ──────────────────────────────────────
+echo ""
+echo "→ Gemini auth (the agent's LLM) — pick ONE in config/.env:"
+echo "    • AI Studio key:  GOOGLE_API_KEY=<key from aistudio.google.com/apikey>"
+echo "    • Vertex AI:      GOOGLE_GENAI_USE_VERTEXAI=TRUE, GOOGLE_CLOUD_PROJECT=${PROJECT_ID},"
+echo "                      GOOGLE_CLOUD_LOCATION=${REGION}  (run: gcloud services enable aiplatform.googleapis.com)"
+echo "  Note: if AI Studio returns 429 (no credits), switch to Vertex."
+echo "  On Vertex, set NIGHTOPS_MODEL=gemini-2.5-flash (gemini-3.1-pro-preview is not on Vertex)."
+
+# ── Generate Manifests (optional — only for deploying the agent INTO GKE) ──
+# Non-fatal: local runs (run-local.sh / nightops agent run) don't need these,
+# so a failure here must not abort an otherwise-successful cluster setup.
 echo ""
 echo "→ Generating K8s manifests from config/.env..."
 if [[ -f "${SCRIPT_DIR}/generate-manifests.sh" ]]; then
-    "${SCRIPT_DIR}/generate-manifests.sh"
-    echo ""
-    echo "  ✓ Manifests generated in deploy/generated/"
+    if "${SCRIPT_DIR}/generate-manifests.sh"; then
+        echo ""
+        echo "  ✓ Manifests generated in deploy/generated/"
+    else
+        echo ""
+        echo "  ⚠ Manifest generation skipped (only needed to deploy the agent INTO GKE)."
+        echo "    Local runs don't need it. Fix config/.env and re-run generate-manifests.sh if you want them."
+    fi
 else
     echo "  ⚠ scripts/generate-manifests.sh not found, skipping"
 fi

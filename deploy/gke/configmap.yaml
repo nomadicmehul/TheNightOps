@@ -8,7 +8,10 @@ metadata:
 data:
   nightops.yaml: |
     agent:
-      model: gemini-3.1-pro
+      # gemini-2.5-flash is available on both Vertex AI and AI Studio.
+      # (gemini-3.x previews are AI-Studio-only and 404 on Vertex, which GKE
+      # deployments use via IAM/ADC.) Override per-deploy with NIGHTOPS_MODEL.
+      model: gemini-2.5-flash
       max_investigation_time: 300
       max_agent_turns: 20
       require_human_approval:
@@ -22,12 +25,16 @@ data:
       cloud_observability:
         type: official
         endpoint: https://logging.googleapis.com/mcp
+        project_id: "${GCP_PROJECT_ID}"
         auth: iam
         enabled: true
 
       gke:
         type: official
         endpoint: https://container.googleapis.com/mcp
+        project_id: "${GCP_PROJECT_ID}"
+        cluster: "${GKE_CLUSTER_NAME}"
+        location: "${GKE_CLUSTER_LOCATION}"
         auth: iam
         enabled: true
 
